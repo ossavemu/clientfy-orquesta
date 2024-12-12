@@ -9,7 +9,7 @@ fi
 
 # Iniciar el servidor en segundo plano
 echo "Iniciando servidor..."
-node src/app.js > server.log 2>&1 &
+pnpm start > server.log 2>&1 &
 
 # Guardar el PID
 echo $! > server.pid

@@ -2,7 +2,7 @@
 
 # Instalar dependencias
 echo "Instalando dependencias..."
-npm install
+pnpm install
 
 # Dar permisos de ejecución a los scripts
 chmod +x start-server.sh stop-server.sh
