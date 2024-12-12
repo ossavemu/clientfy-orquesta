@@ -1,5 +1,6 @@
 legacy-api.txt
 pnpm-lock.yaml
 .env
-
 node_modules
+server.pid
+server.log
