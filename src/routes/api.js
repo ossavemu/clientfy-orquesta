@@ -22,9 +22,22 @@ router.post('/instance/create', async (req, res) => {
   }
 
   try {
+    // Verificar si la instancia ya existe en el stateManager
+    const existingInstance = await stateManager.getInstance(numberphone);
+    if (existingInstance) {
+      return res
+        .status(400)
+        .json({ error: 'Ya existe una instancia en memoria para este número' });
+    }
+
     // Verificar si la instancia ya existe en DigitalOcean
     const existingDroplet = await getExistingDroplet(numberphone);
     if (existingDroplet) {
+      // Si existe en DigitalOcean, actualizar el estado en memoria
+      stateManager.updateInstance(numberphone, {
+        status: 'existing_in_digitalocean',
+        instanceInfo: existingDroplet,
+      });
       return res
         .status(400)
         .json({
@@ -32,6 +45,7 @@ router.post('/instance/create', async (req, res) => {
         });
     }
 
+    // Si no existe en memoria ni en DigitalOcean, crear una nueva instancia
     stateManager.createInstance(numberphone);
 
     // Iniciar el proceso en background
