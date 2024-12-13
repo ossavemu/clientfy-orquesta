@@ -17,7 +17,25 @@ export async function initializeInstance(ip) {
       'cd /root/ClientFyAdmin',
       'git init || true',
       'git config --global --add safe.directory /root/ClientFyAdmin || true',
-      // ... resto de los comandos
+      'git config --global --add safe.directory /root/ClientFyAdmin || true',
+      'git config core.fileMode false || true',
+      // Configurar el repositorio remoto
+      'git remote remove origin || true',
+      'git remote add origin https://github.com/ossavemu/ClientFyAdmin.git || true',
+      // Obtener los últimos cambios
+      'git fetch origin || true',
+      'git checkout master || git checkout -b master || true',
+      'git pull origin master || true',
+      // Asegurarnos de que pnpm está instalado
+      'command -v pnpm || npm install -g pnpm',
+      // Instalar solo dependencias faltantes sin borrar las existentes
+      'cd /root/ClientFyAdmin && pnpm install --no-frozen-lockfile',
+      // Eliminar la carpeta bot_sessions y el archivo QR
+      'rm -rf /root/ClientFyAdmin/bot_sessions',
+      'rm -f /root/ClientFyAdmin/bot.qr.png',
+      // Reiniciar la aplicación
+      'pkill -f "pnpm start" || true',
+      'screen -S clientfy -d -m bash -c "cd /root/ClientFyAdmin && pnpm start > app.log 2>&1"',
     ];
 
     for (const cmd of commands) {
