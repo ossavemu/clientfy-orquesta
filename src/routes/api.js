@@ -22,6 +22,16 @@ router.post('/instance/create', async (req, res) => {
   }
 
   try {
+    // Verificar si la instancia ya existe en DigitalOcean
+    const existingDroplet = await getExistingDroplet(numberphone);
+    if (existingDroplet) {
+      return res
+        .status(400)
+        .json({
+          error: 'Ya existe una instancia en DigitalOcean para este número',
+        });
+    }
+
     stateManager.createInstance(numberphone);
 
     // Iniciar el proceso en background
