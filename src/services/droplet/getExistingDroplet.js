@@ -12,6 +12,7 @@ export async function getExistingDroplet(numberphone) {
           timeout: 10000,
         }
       );
+      console.log(response.data.droplets[0]);
       return response.data.droplets[0] || null;
     } catch (error) {
       console.error('Error al verificar droplet existente:', error);
