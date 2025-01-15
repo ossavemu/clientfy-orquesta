@@ -10,7 +10,7 @@ export async function retryWithDelay(fn, retries = 3, delay = 5000) {
 
       if (i < retries - 1) {
         console.log(
-          `Esperando ${delay / 1000} segundos antes del siguiente intento...`
+          `Esperando ${delay / 1000} segundos antes del siguiente intento...`,
         );
         await new Promise((resolve) => setTimeout(resolve, delay));
       }

@@ -1,4 +1,4 @@
-import { getExistingDroplet } from './droplet/getExistingDroplet.js';
+import { getExistingDroplet } from "./droplet/getExistingDroplet.js";
 
 class InstanceStateManager {
   constructor() {
@@ -7,11 +7,11 @@ class InstanceStateManager {
 
   createInstance(numberphone) {
     if (this.instances.has(numberphone)) {
-      throw new Error('Ya existe una instancia para este número');
+      throw new Error("Ya existe una instancia para este número");
     }
 
     this.instances.set(numberphone, {
-      status: 'creating',
+      status: "creating",
       progress: 0,
       error: null,
       instanceInfo: null,
@@ -26,11 +26,11 @@ class InstanceStateManager {
       const existingDroplet = await getExistingDroplet(numberphone);
       if (existingDroplet) {
         const ipAddress = existingDroplet.networks.v4.find(
-          (network) => network.type === 'public'
+          (network) => network.type === "public",
         )?.ip_address;
 
         instance = {
-          status: 'completed',
+          status: "completed",
           progress: 100,
           error: null,
           instanceInfo: {

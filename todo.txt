@@ -1,0 +1,4 @@
+- Hacer seguros los endpoints
+- Activar ESLINT
+- Crear Servidor de Contraseñas TIPO="ItLY51H2fh" que envíe correos electrónicos con la respectiva contraseña
+
