@@ -1,4 +1,4 @@
-import { NodeSSH } from "node-ssh";
+import { NodeSSH } from 'node-ssh';
 
 export async function waitForSSH(ip, maxAttempts = 60) {
   const ssh = new NodeSSH();
@@ -17,16 +17,16 @@ export async function waitForSSH(ip, maxAttempts = 60) {
 
       await ssh.connect({
         host: ip,
-        username: "root",
+        username: 'root',
         password: process.env.DIGITALOCEAN_SSH_PASSWORD,
         tryKeyboard: true,
         timeout: 30000,
         readyTimeout: 40000,
       });
 
-      const { stdout: systemCheck } = await ssh.execCommand("whoami");
-      if (systemCheck.trim() === "root") {
-        console.log("Conexión SSH establecida exitosamente");
+      const { stdout: systemCheck } = await ssh.execCommand('whoami');
+      if (systemCheck.trim() === 'root') {
+        console.log('Conexión SSH establecida exitosamente');
         await ssh.dispose();
         return true;
       }

@@ -1,12 +1,12 @@
-import axios from "axios";
-import express from "express";
-import { DO_API_URL, headers } from "../../config/digitalocean.js";
-import { authMiddleware } from "../../middleware/authMiddleware.js";
+import axios from 'axios';
+import express from 'express';
+import { DO_API_URL, headers } from '../../config/digitalocean.js';
+import { authMiddleware } from '../../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 // Obtener todas las instancias (droplets)
-router.get("/list", authMiddleware, async (req, res) => {
+router.get('/list', authMiddleware, async (req, res) => {
   try {
     const response = await axios.get(`${DO_API_URL}/droplets`, { headers });
     const droplets = response.data.droplets.map((droplet) => ({
@@ -14,7 +14,7 @@ router.get("/list", authMiddleware, async (req, res) => {
       name: droplet.name,
       status: droplet.status,
       created: droplet.created_at,
-      ip: droplet.networks.v4.find((net) => net.type === "public")?.ip_address,
+      ip: droplet.networks.v4.find((net) => net.type === 'public')?.ip_address,
       memory: droplet.memory,
       disk: droplet.disk,
       region: droplet.region.name,
@@ -25,13 +25,13 @@ router.get("/list", authMiddleware, async (req, res) => {
       droplets,
     });
   } catch (error) {
-    console.error("Error al obtener lista de droplets:", error);
+    console.error('Error al obtener lista de droplets:', error);
     return res.status(500).json({ error: error.message });
   }
 });
 
 // Obtener todas las imágenes
-router.get("/images", authMiddleware, async (req, res) => {
+router.get('/images', authMiddleware, async (req, res) => {
   try {
     const response = await axios.get(`${DO_API_URL}/images`, { headers });
     const images = response.data.images.map((image) => ({
@@ -49,7 +49,7 @@ router.get("/images", authMiddleware, async (req, res) => {
       images,
     });
   } catch (error) {
-    console.error("Error al obtener lista de imágenes:", error);
+    console.error('Error al obtener lista de imágenes:', error);
     return res.status(500).json({ error: error.message });
   }
 });
