@@ -130,10 +130,6 @@ sysctl -p
 echo -e "${YELLOW}Instalando dependencias del proyecto...${NC}"
 bun install
 
-# Construir el proyecto
-echo -e "${YELLOW}Construyendo el proyecto...${NC}"
-bun run build
-
 # Configurar permisos de scripts
 chmod +x start-server.sh stop-server.sh
 
@@ -148,7 +144,7 @@ After=network.target redis-server.service
 Type=simple
 User=root
 WorkingDirectory=$(pwd)
-ExecStart=$(which bun) run start
+ExecStart=$(which bun) run src/app.ts
 Restart=always
 Environment=NODE_ENV=production
 

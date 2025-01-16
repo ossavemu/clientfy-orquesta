@@ -11,7 +11,7 @@ fi
 echo "Iniciando servidor..."
 export PATH="$HOME/.bun/bin:$PATH"
 export BUN_INSTALL="$HOME/.bun"
-$HOME/.bun/bin/bun start > server.log 2>&1 &
+$HOME/.bun/bin/bun run src/app.ts > server.log 2>&1 &
 
 # Guardar el PID
 echo $! > server.pid
