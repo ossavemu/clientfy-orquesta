@@ -6,7 +6,7 @@
   "main": "dist/app.js",
   "scripts": {
     "start": "bun run dist/app.js",
-    "build": "bun build ./src/app.ts --outdir ./dist && cp -r public dist/",
+    "build": "bun build ./src/app.ts --outdir ./dist --target node && cp -r public dist/",
     "dev": "bun run lint:fix && bun --hot run src/app.ts",
     "lint": "eslint \"**/*.ts\"",
     "lint:fix": "eslint \"**/*.ts\" --fix"
