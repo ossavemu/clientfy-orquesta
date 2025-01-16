@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type ErrorRequestHandler } from 'express';
 import './config/env';
 import { errorHandler } from './middleware/errorHandler';
 import adminRoute, { setupAdminWebSocket } from './routes/admin/redis';
@@ -19,7 +19,7 @@ app.use('/api', router);
 app.use('/admin/redis', adminRoute);
 
 // Manejador de errores
-app.use(errorHandler);
+app.use(errorHandler as ErrorRequestHandler);
 
 // Iniciar servidor solo después de conectar a Redis
 async function startServer() {
