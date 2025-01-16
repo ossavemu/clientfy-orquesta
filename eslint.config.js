@@ -1,22 +1,32 @@
 import eslint from '@eslint/js';
+import typescript from '@typescript-eslint/eslint-plugin';
+import typescriptParser from '@typescript-eslint/parser';
 import prettier from 'eslint-config-prettier';
 
 export default [
   eslint.configs.recommended,
   prettier,
   {
-    files: ['**/*.js'],
-    ignores: ['node_modules/**', 'dist/**', 'coverage/**', '.env', '*.log'],
+    files: ['**/*.ts'],
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
+      parser: typescriptParser,
+      parserOptions: {
+        project: './tsconfig.json',
+      },
       globals: {
         process: 'readonly',
         console: 'readonly',
         setTimeout: 'readonly',
       },
     },
+    plugins: {
+      '@typescript-eslint': typescript,
+    },
     rules: {
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports' },
+      ],
       'no-console': 'off',
       'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'no-constant-condition': ['error', { checkLoops: false }],
@@ -26,6 +36,8 @@ export default [
       indent: ['error', 2],
       'comma-dangle': 'off',
       'object-curly-spacing': ['error', 'always'],
+      '@typescript-eslint/no-unused-vars': ['error'],
+      '@typescript-eslint/no-explicit-any': ['warn'],
     },
   },
 ];

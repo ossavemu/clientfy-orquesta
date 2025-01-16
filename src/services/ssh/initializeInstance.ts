@@ -1,6 +1,6 @@
 import { NodeSSH } from 'node-ssh';
 
-export async function initializeInstance(ip) {
+export async function initializeInstance(ip: string) {
   const ssh = new NodeSSH();
 
   try {

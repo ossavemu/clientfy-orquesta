@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendPasswordEmail = async (email, password) => {
+export const sendPasswordEmail = async (email: string, password: string) => {
   try {
     await transporter.sendMail({
       from: `"ClientFy" <${process.env.GMAIL_USER}>`,

@@ -1,10 +1,10 @@
 import express from 'express';
 import { createServer } from 'http';
-import './config/env.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import adminRoute, { setupAdminWebSocket } from './routes/admin/redis.js';
-import apiRoutes from './routes/api.js';
-import { redisService } from './services/redis/redisService.js';
+import './config/env';
+import { errorHandler } from './middleware/errorHandler';
+import adminRoute, { setupAdminWebSocket } from './routes/admin/redis';
+import apiRoutes from './routes/api';
+import { redisService } from './services/redis/redisService';
 
 const app = express();
 const server = createServer(app);
@@ -35,7 +35,7 @@ async function startServer() {
     server.listen(PORT, () => {
       console.log(`Servidor corriendo en puerto ${PORT}`);
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error al iniciar el servidor:', error);
     process.exit(1);
   }

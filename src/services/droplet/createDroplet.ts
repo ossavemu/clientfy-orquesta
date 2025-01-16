@@ -1,13 +1,14 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { DO_API_URL, headers } from '../../config/digitalocean.js';
+import type { Droplet } from '../../types';
 import { retryWithDelay } from '../../utils/retryWithDelay.js';
 
 export async function createDroplet(
-  instanceName,
-  numberphone,
-  provider,
-  userData,
-) {
+  instanceName: string,
+  numberphone: string,
+  provider: string,
+  userData: string
+): Promise<Droplet> {
   try {
     console.log('Iniciando creación del droplet...');
     const createDropletResponse = await axios.post(
@@ -25,18 +26,23 @@ export async function createDroplet(
       },
       {
         headers,
-        timeout: 30000, // 30 segundos para la creación
-      },
+        timeout: 30000,
+      }
     );
 
     return createDropletResponse.data.droplet;
-  } catch (error) {
-    console.error('Error al crear droplet:', error.message);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : 'Error desconocido';
+    console.error('Error al crear droplet:', errorMessage);
     throw error;
   }
 }
 
-export async function waitForDropletActive(dropletId, maxAttempts = 30) {
+export async function waitForDropletActive(
+  dropletId: number,
+  maxAttempts = 30
+): Promise<Droplet> {
   console.log('Esperando que el droplet esté activo...');
   let attempts = 0;
   const waitTime = 10000; // 10 segundos entre intentos
@@ -52,7 +58,7 @@ export async function waitForDropletActive(dropletId, maxAttempts = 30) {
             timeout: 30000, // Aumentamos el timeout a 30 segundos
           }),
         3,
-        5000,
+        5000
       );
 
       const droplet = dropletResponse.data.droplet;
@@ -66,12 +72,12 @@ export async function waitForDropletActive(dropletId, maxAttempts = 30) {
 
         for (let i = 1; i <= intervals; i++) {
           await new Promise((resolve) =>
-            setTimeout(resolve, totalWaitTime / intervals),
+            setTimeout(resolve, totalWaitTime / intervals)
           );
           console.log(
             `Esperando inicialización... ${
               i * (totalWaitTime / intervals / 1000)
-            }/${totalWaitTime / 1000} segundos`,
+            }/${totalWaitTime / 1000} segundos`
           );
         }
 
@@ -82,14 +88,16 @@ export async function waitForDropletActive(dropletId, maxAttempts = 30) {
       console.log(
         `Droplet aún no activo. Estado actual: ${
           droplet?.status || 'desconocido'
-        }`,
+        }`
       );
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     } catch (error) {
       console.error(
         `Error al verificar estado (intento ${attempts + 1}):`,
-        error.message,
-        error.response?.status ? `Status: ${error.response.status}` : '',
+        error instanceof Error ? error.message : 'Error desconocido',
+        error instanceof AxiosError && error.response?.status
+          ? `Status: ${error.response.status}`
+          : ''
       );
       attempts++;
       await new Promise((resolve) => setTimeout(resolve, waitTime));
@@ -97,6 +105,6 @@ export async function waitForDropletActive(dropletId, maxAttempts = 30) {
   }
 
   throw new Error(
-    `Timeout esperando que la instancia esté activa después de ${maxAttempts} intentos`,
+    `Timeout esperando que la instancia esté activa después de ${maxAttempts} intentos`
   );
 }

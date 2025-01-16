@@ -1,6 +1,6 @@
 import { NodeSSH } from 'node-ssh';
 
-export async function waitForSSH(ip, maxAttempts = 60) {
+export async function waitForSSH(ip: string, maxAttempts = 60) {
   const ssh = new NodeSSH();
   let attempts = 0;
   const waitTime = 10000;
@@ -12,7 +12,7 @@ export async function waitForSSH(ip, maxAttempts = 60) {
           attempts + 1
         }/${maxAttempts} - Tiempo restante: ${
           (maxAttempts - attempts) * 10
-        } segundos`,
+        } segundos`
       );
 
       await ssh.connect({
@@ -32,8 +32,10 @@ export async function waitForSSH(ip, maxAttempts = 60) {
       }
 
       await ssh.dispose();
-    } catch (error) {
-      console.log(`Intento fallido (${attempts + 1}): ${error.message}`);
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Error desconocido';
+      console.log(`Intento fallido (${attempts + 1}): ${errorMessage}`);
       attempts++;
       await new Promise((resolve) => setTimeout(resolve, waitTime));
     }

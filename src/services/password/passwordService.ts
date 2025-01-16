@@ -1,7 +1,7 @@
 import KSUID from 'ksuid';
-import { validateEmail } from '../../utils/emailValidator.js';
-import { sendPasswordEmail } from '../email/emailService.js';
-import { redisService } from '../redis/redisService.js';
+import { validateEmail } from '../../utils/emailValidator';
+import { sendPasswordEmail } from '../email/emailService';
+import { redisService } from '../redis/redisService';
 
 const formatTimestamp = () => {
   return new Date().toLocaleString('es-ES', {
@@ -11,7 +11,7 @@ const formatTimestamp = () => {
   });
 };
 
-export const generateAndSendPassword = async (email) => {
+export const generateAndSendPassword = async (email: string) => {
   try {
     // Validar email
     await validateEmail(email);
@@ -60,7 +60,7 @@ export const generateAndSendPassword = async (email) => {
 };
 
 // Función para obtener la contraseña de un email
-export const getPassword = async (email) => {
+export const getPassword = async (email: string) => {
   try {
     await validateEmail(email);
 
