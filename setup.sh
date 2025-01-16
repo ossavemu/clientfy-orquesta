@@ -144,9 +144,12 @@ After=network.target redis-server.service
 Type=simple
 User=root
 WorkingDirectory=$(pwd)
-ExecStart=$(which bun) run src/app.ts
+ExecStart=/bin/bash -c 'export PATH=/root/.bun/bin:$PATH && export BUN_INSTALL=/root/.bun && bun run src/app.ts'
 Restart=always
 Environment=NODE_ENV=production
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.bun/bin
+Environment=BUN_INSTALL=/root/.bun
+EnvironmentFile=$(pwd)/.env
 
 [Install]
 WantedBy=multi-user.target
