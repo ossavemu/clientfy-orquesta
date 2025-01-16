@@ -22,7 +22,9 @@ apt-get install -y curl git build-essential
 # Instalar Bun
 echo -e "${YELLOW}Instalando Bun...${NC}"
 curl -fsSL https://bun.sh/install | bash
-source ~/.bashrc
+export PATH="$HOME/.bun/bin:$PATH"
+export BUN_INSTALL="$HOME/.bun"
+
 
 # Verificar instalación de Bun
 if ! command -v bun &> /dev/null; then
