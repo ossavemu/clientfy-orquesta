@@ -1,13 +1,12 @@
+import { DO_API_URL, headers } from '@src/config/digitalocean';
+import { authMiddleware } from '@src/middleware/authMiddleware';
+import { getExistingDroplet } from '@src/services/droplet/getExistingDroplet';
+import { stateManager } from '@src/services/instanceStateManager';
+import type { ApiResponse } from '@src/types';
+
+import { router } from '@src/server';
 import axios from 'axios';
 import type { RequestHandler } from 'express';
-import express from 'express';
-import { DO_API_URL, headers } from '../../config/digitalocean';
-import { authMiddleware } from '../../middleware/authMiddleware';
-import { getExistingDroplet } from '../../services/droplet/getExistingDroplet';
-import { stateManager } from '../../services/instanceStateManager';
-import type { ApiResponse } from '../../types';
-
-const router = express.Router();
 
 const deleteInstance: RequestHandler<
   { numberphone: string },

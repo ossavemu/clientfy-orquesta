@@ -1,17 +1,16 @@
-import type { RequestHandler } from 'express';
-import express from 'express';
-import { authMiddleware } from '../../middleware/authMiddleware';
+import { authMiddleware } from '@src/middleware/authMiddleware';
+import { router } from '@src/server';
 import {
   createDroplet,
   waitForDropletActive,
-} from '../../services/droplet/createDroplet';
-import { getExistingDroplet } from '../../services/droplet/getExistingDroplet';
-import { stateManager } from '../../services/instanceStateManager';
-import { initializeInstance } from '../../services/ssh/initializeInstance';
-import { waitForSSH } from '../../services/ssh/waitForSSH';
-import type { ApiResponse, CreateInstanceBody } from '../../types';
+} from '@src/services/droplet/createDroplet';
+import { getExistingDroplet } from '@src/services/droplet/getExistingDroplet';
+import { stateManager } from '@src/services/instanceStateManager';
+import { initializeInstance } from '@src/services/ssh/initializeInstance';
+import { waitForSSH } from '@src/services/ssh/waitForSSH';
+import type { ApiResponse, CreateInstanceBody } from '@src/types';
 
-const router = express.Router();
+import { type RequestHandler } from 'express';
 
 const createInstance: RequestHandler<
   {},

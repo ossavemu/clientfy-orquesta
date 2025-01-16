@@ -1,12 +1,10 @@
-import express from 'express';
-import createRoute from './instance/create.js';
-import deleteRoute from './instance/delete.js';
-import listRoute from './instance/list.js';
-import restartRoute from './instance/restart.js';
-import statusRoute from './instance/status.js';
-import generatePasswordRoute from './password/generate.js';
-
-const router = express.Router();
+import { router } from '@src/server';
+import createRoute from './instance/create';
+import deleteRoute from './instance/delete';
+import listRoute from './instance/list';
+import restartRoute from './instance/restart';
+import statusRoute from './instance/status';
+import generatePasswordRoute from './password/generate';
 
 router.use('/instance', createRoute);
 router.use('/instance', statusRoute);

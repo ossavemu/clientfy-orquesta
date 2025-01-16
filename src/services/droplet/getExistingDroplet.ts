@@ -1,6 +1,7 @@
+import { DO_API_URL, headers } from '@src/config/digitalocean';
+import { retryWithDelay } from '@src/utils/retryWithDelay';
+
 import axios from 'axios';
-import { DO_API_URL, headers } from '../../config/digitalocean.js';
-import { retryWithDelay } from '../../utils/retryWithDelay.js';
 
 export async function getExistingDroplet(numberphone: string) {
   return retryWithDelay(async () => {

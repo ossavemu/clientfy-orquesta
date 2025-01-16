@@ -1,7 +1,8 @@
+import { DO_API_URL, headers } from '@src/config/digitalocean';
+import type { Droplet } from '@src/types';
+import { retryWithDelay } from '@src/utils/retryWithDelay';
+
 import axios, { AxiosError } from 'axios';
-import { DO_API_URL, headers } from '../../config/digitalocean.js';
-import type { Droplet } from '../../types';
-import { retryWithDelay } from '../../utils/retryWithDelay.js';
 
 export async function createDroplet(
   instanceName: string,

@@ -1,10 +1,10 @@
-import type { Redis as RedisClient } from 'ioredis';
+import { redisConfig } from '@src/config/redis';
+import type { PasswordInfo } from '@src/types';
+
 import Redis from 'ioredis';
-import { redisConfig } from '../../config/redis';
-import type { PasswordInfo } from '../../types';
 
 class RedisService {
-  client: RedisClient | null;
+  client: Redis | null;
   isConnected: boolean;
 
   constructor() {
@@ -12,7 +12,7 @@ class RedisService {
     this.isConnected = false;
   }
 
-  async connect(): Promise<RedisClient> {
+  async connect(): Promise<Redis> {
     try {
       if (this.isConnected && this.client) {
         return this.client;

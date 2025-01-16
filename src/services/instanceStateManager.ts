@@ -1,5 +1,5 @@
-import type { InstanceInfo, InstanceState } from '../types';
-import { getExistingDroplet } from './droplet/getExistingDroplet';
+import { getExistingDroplet } from '@src/services/droplet/getExistingDroplet';
+import type { InstanceInfo, InstanceState } from '@src/types';
 
 const InstanceStatus = {
   CREATING: 'creating',

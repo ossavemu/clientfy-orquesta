@@ -12,6 +12,11 @@
     "skipLibCheck": true,
     "noImplicitAny": true,
     "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"],
+      "@public/*": ["public/*"]
+    },
     "types": ["node", "bun-types"]
   },
   "include": ["src"],

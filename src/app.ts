@@ -1,13 +1,10 @@
 import express from 'express';
-import { createServer } from 'http';
 import './config/env';
 import { errorHandler } from './middleware/errorHandler';
 import adminRoute, { setupAdminWebSocket } from './routes/admin/redis';
-import apiRoutes from './routes/api';
-import { app } from './server';
+import router from './routes/api';
+import { app, server } from './server';
 import { redisService } from './services/redis/redisService';
-
-const server = createServer(app);
 
 // Middleware de logging
 app.use((req, res, next) => {
@@ -18,7 +15,7 @@ app.use((req, res, next) => {
 app.use(express.json());
 
 // Rutas
-app.use('/api', apiRoutes);
+app.use('/api', router);
 app.use('/admin/redis', adminRoute);
 
 // Manejador de errores

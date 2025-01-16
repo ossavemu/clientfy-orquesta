@@ -1,7 +1,8 @@
+import { sendPasswordEmail } from '@src/services/email/emailService';
+import { redisService } from '@src/services/redis/redisService';
+import { validateEmail } from '@src/utils/emailValidator';
+
 import KSUID from 'ksuid';
-import { validateEmail } from '../../utils/emailValidator';
-import { sendPasswordEmail } from '../email/emailService';
-import { redisService } from '../redis/redisService';
 
 const formatTimestamp = () => {
   return new Date().toLocaleString('es-ES', {

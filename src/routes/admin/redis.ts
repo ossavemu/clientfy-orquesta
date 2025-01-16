@@ -1,16 +1,14 @@
-import type { ChildProcess } from 'child_process';
-import { spawn } from 'child_process';
-import express from 'express';
-import type { Server } from 'http';
+import { router } from '@src/server';
+import type { Server, WebSocketMessage } from '@src/types';
+
+import { type ChildProcess, spawn } from 'child_process';
+
 import { Buffer } from 'node:buffer';
 import path from 'path';
 import { clearInterval, setInterval } from 'timers';
 import { fileURLToPath } from 'url';
-import type { RawData, WebSocket } from 'ws';
-import { WebSocketServer } from 'ws';
-import type { WebSocketMessage } from '../../types';
+import { type RawData, type WebSocket, WebSocketServer } from 'ws';
 
-const router = express.Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Usar la contraseña desde variables de entorno

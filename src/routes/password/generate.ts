@@ -1,13 +1,13 @@
-import type { RequestHandler } from 'express';
-import express from 'express';
+import { router } from '@src/server';
 import {
   generateAndSendPassword,
   getPassword,
-} from '../../services/password/passwordService';
-import type { ApiResponse } from '../../types';
+} from '@src/services/password/passwordService';
 
-const router = express.Router();
+import type { ApiResponse } from '@src/types';
+import type { RequestHandler } from 'express';
 
+// Generar nueva contraseña
 // Generar nueva contraseña
 const generatePassword: RequestHandler<
   {},

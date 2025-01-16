@@ -1,5 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
+import type { server } from './server';
 import type { InstanceStatus } from './services/instanceStateManager';
+
+type Server = typeof server;
 
 interface GeneratePasswordRequest extends Request {
   body: {

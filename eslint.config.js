@@ -2,6 +2,7 @@ import eslint from '@eslint/js';
 import typescript from '@typescript-eslint/eslint-plugin';
 import typescriptParser from '@typescript-eslint/parser';
 import prettier from 'eslint-config-prettier';
+import noRelativeImportPaths from 'eslint-plugin-no-relative-import-paths';
 
 export default [
   eslint.configs.recommended,
@@ -22,8 +23,13 @@ export default [
     },
     plugins: {
       '@typescript-eslint': typescript,
+      'no-relative-import-paths': noRelativeImportPaths,
     },
     rules: {
+      'no-relative-import-paths/no-relative-import-paths': [
+        'warn',
+        { allowSameFolder: true, rootDir: 'src', prefix: '@src' },
+      ],
       '@typescript-eslint/consistent-type-imports': [
         'error',
         { prefer: 'type-imports' },
