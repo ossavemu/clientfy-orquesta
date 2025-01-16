@@ -1,12 +1,12 @@
 import type { InstanceInfo, InstanceState } from '../types';
 import { getExistingDroplet } from './droplet/getExistingDroplet';
 
-export enum InstanceStatus {
-  CREATING = 'creating',
-  COMPLETED = 'completed',
-  FAILED = 'failed',
-  DELETED = 'deleted',
-}
+const InstanceStatus = {
+  CREATING: 'creating',
+  COMPLETED: 'completed',
+  FAILED: 'failed',
+  DELETED: 'deleted',
+} as const;
 
 class InstanceStateManager {
   instances: Map<string, InstanceState>;
