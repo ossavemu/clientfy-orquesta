@@ -9,7 +9,9 @@ fi
 
 # Iniciar el servidor en segundo plano
 echo "Iniciando servidor..."
-pnpm start > server.log 2>&1 &
+export PATH="$HOME/.bun/bin:$PATH"
+export BUN_INSTALL="$HOME/.bun"
+$HOME/.bun/bin/bun start > server.log 2>&1 &
 
 # Guardar el PID
 echo $! > server.pid

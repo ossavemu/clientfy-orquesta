@@ -3,13 +3,12 @@ import type { Server, WebSocketMessage } from '@src/types';
 
 import { type ChildProcess, spawn } from 'child_process';
 
+import fs from 'fs';
 import { Buffer } from 'node:buffer';
 import path from 'path';
 import { clearInterval, setInterval } from 'timers';
-import { fileURLToPath } from 'url';
-import { type RawData, type WebSocket, WebSocketServer } from 'ws';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import { type RawData, type WebSocket, WebSocketServer } from 'ws';
 
 // Usar la contraseña desde variables de entorno
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ClientFy0.com';
@@ -18,7 +17,17 @@ let redisCommanderProcess: ChildProcess | null = null;
 
 // Ruta para servir la página de admin
 router.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../../public/admin.html'));
+  try {
+    const adminPath = path.join(process.cwd(), 'public', 'admin.html');
+    if (!fs.existsSync(adminPath)) {
+      res.status(404).send('Archivo admin.html no encontrado');
+      return;
+    }
+    res.sendFile(adminPath);
+  } catch (error) {
+    console.error('Error al servir admin.html:', error);
+    res.status(500).send('Error interno del servidor');
+  }
 });
 
 // Ruta para obtener la configuración

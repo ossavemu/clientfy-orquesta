@@ -158,6 +158,10 @@ EOF
 systemctl daemon-reload
 systemctl enable clientfy-orquesta.service
 
+# Añadir después de la sección de instalación de dependencias
+echo -e "${YELLOW}Creando directorio public...${NC}"
+mkdir -p public
+
 echo -e "${GREEN}Configuración completada${NC}"
 echo -e "${YELLOW}Pasos finales:${NC}"
 echo "1. Edita el archivo .env con tus credenciales"
