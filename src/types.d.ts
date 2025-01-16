@@ -181,14 +181,13 @@ interface DODroplet {
   };
 }
 
-interface DOImage {
-  id: number;
+interface DOSnapshot {
+  id: string;
   name: string;
-  distribution: string;
   created_at: string;
+  regions: string[];
+  min_disk_size: number;
   size_gigabytes: number;
-  description: string;
-  status: string;
 }
 
 interface SimpleDroplet {

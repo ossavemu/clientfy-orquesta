@@ -4,7 +4,7 @@ import { router } from '@src/server';
 import type {
   ApiResponse,
   DODroplet,
-  DOImage,
+  DOSnapshot,
   SimpleDroplet,
 } from '@src/types';
 
@@ -44,35 +44,34 @@ const listDroplets: RequestHandler<{}, ApiResponse<SimpleDroplet[]>> = async (
 
 router.get('/list', authMiddleware, listDroplets);
 
-const listImages: RequestHandler<{}, ApiResponse<DOImage[]>> = async (
+const listSnapshots: RequestHandler<{}, ApiResponse<DOSnapshot[]>> = async (
   req,
   res,
   next
 ): Promise<void> => {
   try {
-    const response = await axios.get<{ images: DOImage[] }>(
-      `${DO_API_URL}/images`,
+    const response = await axios.get<{ snapshots: DOSnapshot[] }>(
+      `${DO_API_URL}/snapshots?resource_type=droplet`,
       { headers }
     );
-    const images = response.data.images.map((image) => ({
-      id: image.id,
-      name: image.name,
-      distribution: image.distribution,
-      created_at: image.created_at,
-      size_gigabytes: image.size_gigabytes,
-      description: image.description,
-      status: image.status,
+    const snapshots = response.data.snapshots.map((snapshot) => ({
+      id: snapshot.id,
+      name: snapshot.name,
+      created_at: snapshot.created_at,
+      regions: snapshot.regions,
+      min_disk_size: snapshot.min_disk_size,
+      size_gigabytes: snapshot.size_gigabytes,
     }));
 
     res.json({
       success: true,
-      data: images,
+      data: snapshots,
     });
   } catch (error: unknown) {
     next(error);
   }
 };
 
-router.get('/images', authMiddleware, listImages);
+router.get('/snapshots', authMiddleware, listSnapshots);
 
 export default router;
