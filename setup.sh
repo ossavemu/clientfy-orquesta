@@ -144,12 +144,15 @@ After=network.target redis-server.service
 Type=simple
 User=root
 WorkingDirectory=$(pwd)
-ExecStart=/bin/bash -c 'export PATH=/root/.bun/bin:$PATH && export BUN_INSTALL=/root/.bun && bun run src/app.ts'
+ExecStart=/bin/bash -c 'export PATH=/root/.bun/bin:$PATH && export BUN_INSTALL=/root/.bun && bun run src/app.ts > /var/log/clientfy-orquesta.log 2>&1'
 Restart=always
 Environment=NODE_ENV=production
 Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.bun/bin
 Environment=BUN_INSTALL=/root/.bun
 EnvironmentFile=$(pwd)/.env
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=clientfy-orquesta
 
 [Install]
 WantedBy=multi-user.target
