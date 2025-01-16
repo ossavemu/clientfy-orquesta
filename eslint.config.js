@@ -17,6 +17,7 @@ export default [
         process: 'readonly',
         console: 'readonly',
         setTimeout: 'readonly',
+        Bun: 'readonly',
       },
     },
     plugins: {

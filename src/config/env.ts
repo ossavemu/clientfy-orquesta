@@ -1,10 +1,4 @@
-import dotenv from 'dotenv';
-
-const result = dotenv.config();
-if (result.error) {
-  console.error('Error al cargar .env:', result.error);
-  process.exit(1);
-}
+// Bun carga automáticamente el .env
 
 console.log('Variables de entorno cargadas:', {
   token: process.env.DIGITALOCEAN_TOKEN ? 'Configurado' : 'No configurado',

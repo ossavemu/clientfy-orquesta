@@ -203,3 +203,9 @@ interface CreateInstanceBody {
   numberphone: string;
   provider?: string;
 }
+
+interface CustomResponse extends Partial<Response> {
+  statusCode: number;
+  headers: Record<string, string>;
+  body: string;
+}
