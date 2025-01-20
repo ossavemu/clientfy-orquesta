@@ -7,6 +7,8 @@ import router from './routes/api';
 import dropletRoute from './routes/droplet/create';
 import { app, server } from './server';
 import { redisService } from './services/redis/redisService';
+import { redisSyncService } from './services/sync/redisSyncService';
+
 // Configurar CORS
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -43,6 +45,10 @@ app.use(errorHandler as ErrorRequestHandler);
 async function startServer() {
   try {
     await redisService.connect();
+
+    // Iniciar sincronización Redis
+    await redisSyncService.syncExistingData();
+
     setupAdminWebSocket(server);
 
     const { port } = await getServerConfig();

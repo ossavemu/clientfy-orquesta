@@ -40,7 +40,6 @@ export default [
       'no-multiple-empty-lines': ['error', { max: 1 }],
       quotes: ['error', 'single', { allowTemplateLiterals: true }],
       semi: ['error', 'always'],
-      indent: ['error', 2],
       'comma-dangle': 'off',
       'object-curly-spacing': ['error', 'always'],
       '@typescript-eslint/no-unused-vars': ['error'],
