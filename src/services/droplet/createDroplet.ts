@@ -12,13 +12,15 @@ export async function createDroplet(
 ): Promise<Droplet> {
   try {
     console.log('Iniciando creación del droplet...');
+    console.log('User Data configurado:', userData);
+
     const createDropletResponse = await axios.post(
       `${DO_API_URL}/droplets`,
       {
         name: instanceName,
         region: 'sfo3',
         size: 's-1vcpu-512mb-10gb',
-        image: 172586238,
+        image: 175946181,
         backups: false,
         ipv6: false,
         monitoring: true,

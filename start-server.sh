@@ -11,9 +11,11 @@ fi
 echo "Iniciando servidor..."
 export PATH="$HOME/.bun/bin:$PATH"
 export BUN_INSTALL="$HOME/.bun"
+
 $HOME/.bun/bin/bun run src/app.ts > server.log 2>&1 &
 
 # Guardar el PID
 echo $! > server.pid
 echo "Servidor iniciado con PID: $!"
-echo "Logs disponibles en: server.log" 
+echo "Logs disponibles en: server.log"
+echo "Puerto configurado: ${PORT:-3000}" 

@@ -33,6 +33,8 @@ export async function initializeInstance(ip: string) {
       // Eliminar la carpeta bot_sessions y el archivo QR
       'rm -rf /root/ClientFyAdmin/bot_sessions',
       'rm -f /root/ClientFyAdmin/bot.qr.png',
+      // Asegurarnos de que el archivo .env existe
+      'touch /root/ClientFyAdmin/.env',
       // Reiniciar la aplicación
       `pkill -f "pnpm start" && true`,
       `screen -S clientfy -d -m bash -c "cd /root/ClientFyAdmin && pnpm start > app.log 2>&1"`,

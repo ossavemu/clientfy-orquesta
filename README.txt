@@ -51,120 +51,98 @@ APIs DISPONIBLES
 Endpoint: POST /api/instance/create
 Headers:
   x-api-key: TU_CLAVE_API
+  Content-Type: application/json
 Body: 
 {
     "numberphone": "573332221111",
-    "provider": "baileys"  // opcional, por defecto "baileys"
+    "provider": "baileys",           // opcional, por defecto "baileys"
+    "enableAppointments": false,     // opcional, por defecto false
+    "enableAutoInvite": false        // opcional, por defecto false
 }
-Respuesta:
+
+Respuesta Exitosa:
 {
     "success": true,
-    "numberphone": "573332221111",
-    "status": "creating"
+    "data": {
+        "numberphone": "573332221111",
+        "status": "creating"
+    }
 }
+
+Respuesta Error (Instancia Existente):
+{
+    "success": false,
+    "error": "Ya existe una instancia en DigitalOcean para este número"
+}
+
+Estados posibles de la instancia:
+- creating_droplet (25%)
+- waiting_for_ssh (50%)
+- initializing (75%) 
+- completed (100%)
+- failed
 
 1.2 VERIFICAR ESTADO
 Endpoint: GET /api/instance/status/{numberphone}
 Headers:
   x-api-key: TU_CLAVE_API
+
 Respuesta:
 {
-    "status": "configuring",
-    "progress": 60,
+    "status": "creating_droplet",
+    "progress": 25,
     "error": null,
-    "instanceInfo": null
+    "instanceInfo": {
+        "instanceName": "bot-573332221111",
+        "ip": "123.456.789.0",
+        "state": "active",
+        "created": "2024-03-20T15:30:00Z",
+        "numberphone": "573332221111",
+        "dropletId": 123456
+    }
 }
 
-1.3 REINICIAR INSTANCIA
-Endpoint: POST /api/instance/restart/{numberphone}
-Headers:
-  x-api-key: TU_CLAVE_API
-Respuesta:
-{
-    "success": true,
-    "message": "Reinicio iniciado"
-}
+2. GESTIÓN DE DROPLETS
+---------------------
 
-1.4 ELIMINAR INSTANCIA
-Endpoint: DELETE /api/instance/{numberphone}
-Headers:
-  x-api-key: TU_CLAVE_API
-Respuesta:
-{
-    "success": true,
-    "message": "Instancia eliminada correctamente"
-}
-
-1.5 LISTAR INSTANCIAS
-Endpoint: GET /api/instance/list
-Headers:
-  x-api-key: TU_CLAVE_API
-Respuesta:
-{
-    "success": true,
-    "droplets": [
-        {
-            "id": 123456,
-            "name": "bot-573332221111",
-            "status": "active",
-            "created": "2024-03-20T15:30:00Z",
-            "ip": "123.456.789.0",
-            "memory": 1024,
-            "disk": 25,
-            "region": "nyc1"
-        }
-    ]
-}
-
-2. GESTIÓN DE CONTRASEÑAS
-------------------------
-
-2.1 GENERAR CONTRASEÑA
-Endpoint: POST /api/password/generate
+2.1 CREAR DROPLET SIMPLE
+Endpoint: POST /api/droplet/create
 Headers:
   x-api-key: TU_CLAVE_API
 Body:
 {
-    "email": "usuario@ejemplo.com"
+    "name": "nombre-droplet",
+    "region": "sfo3",              // opcional, por defecto "sfo3"
+    "size": "s-1vcpu-512mb-10gb"   // opcional, por defecto "s-1vcpu-512mb-10gb"
 }
+
+Respuesta Exitosa:
+{
+    "success": true,
+    "data": {
+        "id": 123456,
+        "name": "nombre-droplet",
+        "ip": null,
+        "status": "creating",
+        "message": "Droplet creado, esperando asignación de IP"
+    }
+}
+
+2.2 VERIFICAR ESTADO DEL DROPLET
+Endpoint: GET /api/droplet/{id}
+Headers:
+  x-api-key: TU_CLAVE_API
+
 Respuesta:
 {
     "success": true,
-    "password": "generatedPassword123!"
+    "data": {
+        "id": 123456,
+        "name": "nombre-droplet",
+        "ip": "123.456.789.0",
+        "status": "active"
+    }
 }
-
-EJEMPLOS DE USO
-==============
-
-Usando curl:
-
-1. Crear instancia:
-curl -X POST http://localhost:3000/api/instance/create \
--H "Content-Type: application/json" \
--H "x-api-key: TU_CLAVE_API" \
--d '{"numberphone":"573332221111","provider":"baileys"}'
-
-2. Verificar estado:
-curl http://localhost:3000/api/instance/status/573332221111 \
--H "x-api-key: TU_CLAVE_API"
-
-3. Reiniciar instancia:
-curl -X POST http://localhost:3000/api/instance/restart/573332221111 \
--H "x-api-key: TU_CLAVE_API"
-
-4. Eliminar instancia:
-curl -X DELETE http://localhost:3000/api/instance/573332221111 \
--H "x-api-key: TU_CLAVE_API"
-
-5. Listar instancias:
-curl http://localhost:3000/api/instance/list \
--H "x-api-key: TU_CLAVE_API"
-
-6. Generar contraseña:
-curl -X POST http://localhost:3000/api/password/generate \
--H "Content-Type: application/json" \
--H "x-api-key: TU_CLAVE_API" \
--d '{"email":"usuario@ejemplo.com"}'
 
 NOTAS IMPORTANTES
 ===============
@@ -183,7 +161,7 @@ NOTAS IMPORTANTES
 
 3. Limitaciones:
    - Solo puede existir una instancia activa por número de teléfono
-   - Las operaciones asíncronas (crear, reiniciar) devuelven respuesta inmediata
+   - Las operaciones son asíncronas y devuelven respuesta inmediata
    - Se debe consultar el estado para verificar el progreso
    - Los errores devuelven código 400 o 500 con mensaje descriptivo
 

@@ -5,3 +5,4 @@ node_modules
 server.pid
 server.log
 bun.lockb
+CREDENTIALS.json

@@ -204,6 +204,8 @@ interface SimpleDroplet {
 interface CreateInstanceBody {
   numberphone: string;
   provider?: string;
+  enableAppointments?: boolean;
+  enableAutoInvite?: boolean;
 }
 
 interface CustomResponse extends Partial<Response> {

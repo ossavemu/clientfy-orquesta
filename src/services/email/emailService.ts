@@ -35,3 +35,17 @@ export const sendPasswordEmail = async (email: string, password: string) => {
     throw new Error('No se pudo enviar el email con la contraseña');
   }
 };
+
+export class EmailService {
+  private isValidEmailDomain(email: string): boolean {
+    const validDomains = [
+      '@gmail.com',
+      '@hotmail.com',
+      '@yahoo.com',
+      '@outlook.com',
+      '@siwo-net.com',
+    ];
+
+    return validDomains.some((domain) => email.toLowerCase().endsWith(domain));
+  }
+}

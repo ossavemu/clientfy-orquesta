@@ -155,3 +155,16 @@ class RedisService {
 
 // Exportar una única instancia
 export const redisService = new RedisService();
+
+let redisClient: Redis | null = null;
+
+export const getRedisClient = async () => {
+  if (!redisClient) {
+    redisClient = new Redis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: Number(process.env.REDIS_PORT) || 6379,
+      password: process.env.REDIS_PASSWORD,
+    });
+  }
+  return redisClient;
+};

@@ -17,7 +17,12 @@ const createInstance: RequestHandler<
   ApiResponse<{ numberphone: string; status: string }>,
   CreateInstanceBody
 > = async (req, res, next): Promise<void> => {
-  const { numberphone, provider = 'baileys' } = req.body;
+  const {
+    numberphone,
+    provider = 'baileys',
+    enableAppointments = false,
+    enableAutoInvite = false,
+  } = req.body;
 
   if (!numberphone) {
     res.status(400).json({
@@ -48,7 +53,10 @@ const createInstance: RequestHandler<
 
     // Iniciar proceso asíncrono de creación
     const instanceName = `bot-${numberphone}`;
-    const userData = '#!/bin/bash\necho "Instance initialized"';
+    const userData = `#!/bin/bash
+echo "Instance initialized"
+echo "ENABLE_APPOINTMENTS=${enableAppointments}" >> /root/ClientFyAdmin/.env
+echo "ENABLE_AUTO_INVITE=${enableAutoInvite}" >> /root/ClientFyAdmin/.env`;
 
     // Proceso asíncrono
     (async () => {

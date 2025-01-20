@@ -1,43 +1,26 @@
 // Lista de dominios permitidos
 const ALLOWED_DOMAINS = [
-  'gmail.com',
-  'hotmail.com',
-  'outlook.com',
-  'yahoo.com',
-  'live.com',
-  'icloud.com',
+  '@gmail.com',
+  '@hotmail.com',
+  '@outlook.com',
+  '@yahoo.com',
+  '@live.com',
+  '@icloud.com',
+  '@siwo-net.com', // Añadimos el nuevo dominio
 ];
 
-export const validateEmail = (email: string): boolean => {
-  // Verificar formato básico del email
+export const validateEmail = async (email: string): Promise<void> => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   if (!emailRegex.test(email)) {
-    throw new Error('Formato de email inválido');
+    throw new Error('Error de validación: Formato de email inválido');
   }
 
-  // Verificar longitud del email
-  if (email.length > 254) {
-    throw new Error('El email es demasiado largo');
+  const isValidDomain = ALLOWED_DOMAINS.some((domain) =>
+    email.toLowerCase().endsWith(domain)
+  );
+
+  if (!isValidDomain) {
+    throw new Error('Error de validación: Dominio de email no permitido');
   }
-
-  // Separar el dominio del email
-  const [localPart, domain] = email.split('@');
-
-  // Verificar longitud de la parte local
-  if (localPart.length > 64) {
-    throw new Error('La parte local del email es demasiado larga');
-  }
-
-  // Verificar caracteres especiales en la parte local
-  const localPartRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/;
-  if (!localPartRegex.test(localPart)) {
-    throw new Error('El email contiene caracteres no permitidos');
-  }
-
-  // Verificar si el dominio está en la lista de permitidos
-  if (!ALLOWED_DOMAINS.includes(domain.toLowerCase())) {
-    throw new Error('Dominio de email no permitido');
-  }
-
-  return true;
 };

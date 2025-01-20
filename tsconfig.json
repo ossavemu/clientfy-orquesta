@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "node",
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
@@ -14,11 +14,10 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@src/*": ["src/*"],
-      "@public/*": ["public/*"]
+      "@src/*": ["src/*"]
     },
     "types": ["node", "bun-types"]
   },
-  "include": ["src"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
