@@ -1,3 +1,0 @@
-- Hacer seguros los endpoints (y)
-- Activar ESLINT (y)
-- Crear Servidor de Contraseñas Tipo   ksuid tal como ="ItLY51H2fh" que envíe correos electrónicos con la respectiva contraseña (y)

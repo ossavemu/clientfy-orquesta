@@ -2,7 +2,7 @@ import Redis from 'ioredis';
 
 const localRedis = new Redis({
   host: globalThis.process.env.REDIS_HOST || 'localhost',
-  port: globalThis.process.env.REDIS_PORT || 6379,
+  port: Number(globalThis.process.env.REDIS_PORT) || 6379,
   password: globalThis.process.env.REDIS_PASSWORD,
 });
 

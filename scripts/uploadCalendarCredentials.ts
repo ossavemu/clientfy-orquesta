@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 // Configuración de Redis desde variables de entorno
 const redis = new Redis({
   host: globalThis.process.env.REDIS_HOST || 'localhost',
-  port: globalThis.process.env.REDIS_PORT || 6379,
+  port: Number(globalThis.process.env.REDIS_PORT) || 6379,
   password: globalThis.process.env.REDIS_PASSWORD || '',
 });
 

@@ -9,6 +9,7 @@ export default [
   prettier,
   {
     files: ['**/*.ts'],
+    ignores: ['**/scripts/**', '**/dist/**', '**/node_modules/**'],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
