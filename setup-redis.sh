@@ -7,6 +7,9 @@ apt-get upgrade -y
 # Instalar Redis
 apt-get install redis-server -y
 
+# Detener el servicio Redis existente
+systemctl stop redis-server
+
 # Hacer backup del archivo de configuración original
 cp /etc/redis/redis.conf /etc/redis/redis.conf.backup
 
@@ -16,7 +19,7 @@ cat > /etc/redis/redis.conf << EOF
 bind 127.0.0.1
 port 6379
 protected-mode yes
-requirepass ${REDIS_PASSWORD}
+requirepass "clientfy_redis_password"
 
 # Memoria
 maxmemory 256mb
@@ -36,39 +39,26 @@ save 60 100
 rename-command FLUSHDB ""
 rename-command FLUSHALL ""
 rename-command DEBUG ""
+
+# Notificaciones
+notify-keyspace-events KEA
 EOF
 
-# Configurar systemd para Redis
-cat > /etc/systemd/system/redis.service << EOF
-[Unit]
-Description=Redis In-Memory Data Store
-After=network.target
+# No crear un nuevo archivo de servicio, usar el existente
+# Eliminar la sección que crea /etc/systemd/system/redis.service
 
-[Service]
-User=redis
-Group=redis
-ExecStart=/usr/bin/redis-server /etc/redis/redis.conf
-ExecStop=/usr/bin/redis-cli shutdown
-Restart=always
-Type=notify
-RuntimeDirectory=redis
-RuntimeDirectoryMode=0755
+# Asegurar permisos correctos
+chown -R redis:redis /etc/redis/
+chmod 750 /etc/redis/
+chown -R redis:redis /var/lib/redis
+chmod 750 /var/lib/redis
 
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Crear directorio de datos si no existe
-mkdir -p /var/lib/redis
-chown redis:redis /var/lib/redis
-chmod 770 /var/lib/redis
-
-# Reiniciar Redis con la nueva configuración
+# Recargar y reiniciar servicios
 systemctl daemon-reload
-systemctl restart redis
-systemctl enable redis
+systemctl restart redis-server
+systemctl enable redis-server
 
 # Verificar estado
-systemctl status redis
+systemctl status redis-server
 
 echo "Instalación de Redis completada. Verificar el estado arriba." 
