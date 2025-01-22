@@ -49,6 +49,9 @@ REDIS_PORT=6379
 REDIS_PASSWORD=clientfy_redis_password
 REDIS_DB=0
 
+UPSTASH_REDIS_URL=redis://default:AeDlAAIjcDEzZTc0NzkyZGJjOTE0YTY4ODlhOTg4M2EwZDFlOWVlZnAxMA@wise-cowbird-57573.upstash.io:6379
+
+
 # Admin Configuration
 ADMIN_PASSWORD=FZ1TdwDKsV4XnxO
 REDIS_COMMANDER_PORT=8081
