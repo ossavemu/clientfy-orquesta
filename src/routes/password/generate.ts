@@ -45,12 +45,12 @@ router.post('/', generatePassword);
 
 // Obtener información de la contraseña
 const getPasswordInfo: RequestHandler<
-  { email: string },
+  {},
   ApiResponse<{ email: string }>,
   {}
 > = async (req, res, next): Promise<void> => {
   try {
-    const { email } = req.params;
+    const email = req.query.email as string;
 
     if (!email) {
       res.status(400).json({
@@ -83,6 +83,6 @@ const getPasswordInfo: RequestHandler<
   }
 };
 
-router.get('/:email', getPasswordInfo);
+router.get('/', getPasswordInfo);
 
 export default router;

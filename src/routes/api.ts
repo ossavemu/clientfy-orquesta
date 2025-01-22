@@ -24,7 +24,7 @@ router.use('/instance', restartRoute);
 router.use('/instance', deleteInstanceRoute);
 router.use('/instance', listRoute);
 
-// Ruta para generación de contraseñas
+// Ruta para generación de contraseñas (POST y GET en la misma ruta base)
 router.use('/password/generate', generatePasswordRoute);
 
 // Nueva ruta para credenciales del calendario
