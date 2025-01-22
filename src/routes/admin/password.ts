@@ -1,4 +1,5 @@
 import type { GeneratePasswordBody } from '@src/types';
+import axios from 'axios';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
 import fs from 'fs';
@@ -36,19 +37,18 @@ router.post(
     }
 
     try {
-      const result = await globalThis.fetch(
+      const result = await axios.post(
         `${req.protocol}://${req.get('host')}/api/password/generate`,
+        { email },
         {
-          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'x-api-key': process.env.SECRET_KEY as string,
           },
-          body: JSON.stringify({ email }),
         }
       );
 
-      const data = await result.json();
+      const data = result.data;
       res.json(data);
     } catch (error) {
       console.error('Error generando contraseña:', error);
