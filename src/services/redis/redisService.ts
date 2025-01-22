@@ -23,25 +23,37 @@ class RedisService {
         port: Number(redisConfig.port),
         password: redisConfig.password,
         db: Number(redisConfig.db),
-        retryStrategy(times: number): number {
-          const delay = Math.min(times * 50, 2000);
+        retryStrategy(times: number): number | null {
+          const maxRetryTime = 30000; // 30 segundos máximo
+          const delay = Math.min(times * 50, maxRetryTime);
           return delay;
         },
         maxRetriesPerRequest: 3,
+        connectTimeout: 10000,
       });
 
-      // Configurar eventos
       this.client.on('connect', () => {
-        console.log('Conectado a Redis exitosamente');
-        this.isConnected = true;
+        if (!this.isConnected) {
+          console.log('Conectado a Redis exitosamente');
+          this.isConnected = true;
+        }
       });
 
       this.client.on('error', (error: Error) => {
-        console.error('Error en la conexión Redis:', error);
+        if (!error.message.includes('connect ECONNREFUSED')) {
+          console.error('Error en la conexión Redis:', error);
+        }
         this.isConnected = false;
       });
 
-      // Configurar persistencia
+      this.client.on('ready', () => {
+        this.isConnected = true;
+      });
+
+      this.client.on('end', () => {
+        this.isConnected = false;
+      });
+
       await this.configureRedis();
 
       return this.client;
@@ -58,10 +70,8 @@ class RedisService {
   private async configureRedis(): Promise<void> {
     try {
       if (this.client) {
-        // Configurar políticas de guardado
         await this.client.config('SET', 'save', '900 1 300 10 60 100');
 
-        // Configurar memoria máxima
         await this.client.config('SET', 'maxmemory', redisConfig.maxmemory);
         await this.client.config(
           'SET',
@@ -69,7 +79,6 @@ class RedisService {
           redisConfig.maxmemoryPolicy
         );
 
-        // Habilitar AOF para persistencia
         await this.client.config('SET', 'appendonly', 'yes');
         await this.client.config('SET', 'appendfsync', 'everysec');
 
@@ -153,7 +162,6 @@ class RedisService {
   }
 }
 
-// Exportar una única instancia
 export const redisService = new RedisService();
 
 let redisClient: Redis | null = null;

@@ -6,6 +6,7 @@ import listRoute from './instance/list';
 import restartRoute from './instance/restart';
 import statusRoute from './instance/status';
 import generatePasswordRoute from './password/generate';
+import validatePasswordRoute from './password/validate';
 
 const router = Router();
 
@@ -26,6 +27,7 @@ router.use('/instance', listRoute);
 
 // Ruta para generación de contraseñas (POST y GET en la misma ruta base)
 router.use('/password/generate', generatePasswordRoute);
+router.use('/password/validate', validatePasswordRoute);
 
 // Nueva ruta para credenciales del calendario
 router.use('/calendar', calendarCredentialsRoute);

@@ -38,6 +38,20 @@ class RedisSyncService {
         host: process.env.REDIS_HOST,
         port: Number(process.env.REDIS_PORT),
         password: process.env.REDIS_PASSWORD,
+        retryStrategy(times: number): number | null {
+          const maxRetryTime = 30000;
+          const delay = Math.min(times * 50, maxRetryTime);
+          return delay;
+        },
+        maxRetriesPerRequest: 3,
+        connectTimeout: 10000,
+      });
+
+      // Mejorar manejo de eventos
+      this.localRedis.on('error', (error: Error) => {
+        if (!error.message.includes('connect ECONNREFUSED')) {
+          console.error('Error en conexión Redis local:', error);
+        }
       });
 
       console.log('Conexión principal Redis establecida');
@@ -47,6 +61,13 @@ class RedisSyncService {
         host: process.env.REDIS_HOST,
         port: Number(process.env.REDIS_PORT),
         password: process.env.REDIS_PASSWORD,
+        retryStrategy(times: number): number | null {
+          const maxRetryTime = 30000;
+          const delay = Math.min(times * 50, maxRetryTime);
+          return delay;
+        },
+        maxRetriesPerRequest: 3,
+        connectTimeout: 10000,
       });
 
       console.log('Conexión de suscripción Redis establecida');
@@ -54,6 +75,13 @@ class RedisSyncService {
       // Conexión a Upstash
       this.upstashRedis = new Redis(process.env.UPSTASH_REDIS_URL || '', {
         tls: { rejectUnauthorized: false },
+        retryStrategy(times: number): number | null {
+          const maxRetryTime = 30000;
+          const delay = Math.min(times * 50, maxRetryTime);
+          return delay;
+        },
+        maxRetriesPerRequest: 3,
+        connectTimeout: 10000,
       });
 
       console.log('Conexión Upstash establecida');
