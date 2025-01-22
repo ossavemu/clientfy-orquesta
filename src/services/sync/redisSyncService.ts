@@ -5,6 +5,7 @@ const RedisEvent = {
   HSET: 'hset',
   DEL: 'del',
   EXPIRE: 'expire',
+  SADD: 'sadd',
 } as const;
 
 type EventHandler = (_key: string) => Promise<void>;
@@ -20,9 +21,10 @@ class RedisSyncService {
     EventHandler
   > = {
     [RedisEvent.SET]: this.handleSetEvent.bind(this),
-    [RedisEvent.HSET]: this.handleSetEvent.bind(this),
+    [RedisEvent.HSET]: this.handleHashSetEvent.bind(this),
     [RedisEvent.DEL]: this.handleDeleteEvent.bind(this),
     [RedisEvent.EXPIRE]: this.handleExpireEvent.bind(this),
+    [RedisEvent.SADD]: this.handleSetAddEvent.bind(this),
   };
 
   constructor() {
@@ -113,8 +115,10 @@ class RedisSyncService {
     if (!this.upstashRedis || !this.localRedis) return;
 
     try {
-      // Extraer la key completa después de "__keyspace@0__:"
-      const key = channel.replace('__keyspace@0__:', '');
+      // Extraer la key completa después del primer "__keyspace@0__:"
+      const keyStartIndex = channel.indexOf('__:') + 3;
+      const key = channel.substring(keyStartIndex);
+
       console.log(
         `Evento recibido - Canal: ${channel}, Mensaje: ${message}, Key: ${key}`
       );
@@ -149,6 +153,22 @@ class RedisSyncService {
     }
   }
 
+  private async handleHashSetEvent(key: string): Promise<void> {
+    if (!this.localRedis || !this.upstashRedis) return;
+
+    try {
+      const hashValue = await this.localRedis.hgetall(key);
+      console.log(`Sincronizando HSET - Key: ${key}, Valor:`, hashValue);
+
+      if (Object.keys(hashValue).length > 0) {
+        await this.upstashRedis.hmset(key, hashValue);
+        console.log(`✓ Hash sincronizado en Upstash - Key: ${key}`);
+      }
+    } catch (error) {
+      console.error(`Error en handleHashSetEvent para key ${key}:`, error);
+    }
+  }
+
   private async handleDeleteEvent(key: string): Promise<void> {
     if (!this.upstashRedis) return;
     await this.upstashRedis.del(key);
@@ -163,25 +183,78 @@ class RedisSyncService {
     }
   }
 
+  private async handleSetAddEvent(key: string): Promise<void> {
+    if (!this.localRedis || !this.upstashRedis) return;
+
+    try {
+      const members = await this.localRedis.smembers(key);
+      console.log(`Sincronizando SADD - Key: ${key}, Miembros:`, members);
+
+      if (members.length > 0) {
+        await this.upstashRedis.sadd(key, ...members);
+        console.log(`✓ Set sincronizado en Upstash - Key: ${key}`);
+      }
+    } catch (error) {
+      console.error(`Error en handleSetAddEvent para key ${key}:`, error);
+    }
+  }
+
   async syncExistingData() {
     if (!this.localRedis || !this.upstashRedis) return;
 
     try {
       console.log('Iniciando sincronización inicial de datos...');
-
-      // Usar la conexión principal para obtener las keys
       const keys = await this.localRedis.keys('*');
 
       for (const key of keys) {
-        const value = await this.localRedis.get(key);
-        if (value) {
-          await this.upstashRedis.set(key, value);
+        // Primero obtener el tipo de la key
+        const type = await this.localRedis.type(key);
+
+        try {
+          switch (type) {
+            case 'string': {
+              const strValue = await this.localRedis.get(key);
+              if (strValue) await this.upstashRedis.set(key, strValue);
+              break;
+            }
+
+            case 'hash': {
+              const hashValue = await this.localRedis.hgetall(key);
+              if (Object.keys(hashValue).length > 0) {
+                await this.upstashRedis.hmset(key, hashValue);
+              }
+              break;
+            }
+
+            case 'list': {
+              const listValue = await this.localRedis.lrange(key, 0, -1);
+              if (listValue.length > 0) {
+                await this.upstashRedis.rpush(key, ...listValue);
+              }
+              break;
+            }
+
+            case 'set': {
+              const setValue = await this.localRedis.smembers(key);
+              if (setValue.length > 0) {
+                await this.upstashRedis.sadd(key, ...setValue);
+              }
+              break;
+            }
+
+            default:
+              console.log(`Tipo no manejado para key ${key}: ${type}`);
+          }
 
           // Sincronizar TTL si existe
           const ttl = await this.localRedis.ttl(key);
           if (ttl > 0) {
             await this.upstashRedis.expire(key, ttl);
           }
+
+          console.log(`✓ Sincronizada key: ${key} (${type})`);
+        } catch (error) {
+          console.error(`Error sincronizando key ${key}:`, error);
         }
       }
 

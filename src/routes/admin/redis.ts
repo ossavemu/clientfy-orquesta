@@ -1,7 +1,12 @@
 import { router } from '@src/server';
 import type { Server, WebSocketMessage } from '@src/types';
 
-import { type ChildProcess, spawn } from 'child_process';
+import { type ChildProcess, exec, spawn } from 'child_process';
+import { createServer } from 'net';
+
+interface ErrnoException extends Error {
+  code?: string;
+}
 
 import fs from 'fs';
 import { Buffer } from 'node:buffer';
@@ -37,168 +42,336 @@ router.get('/config', (req, res) => {
   });
 });
 
-// Función para iniciar Redis Commander
-const startRedisCommander = () => {
-  if (redisCommanderProcess) return;
-
-  redisCommanderProcess = spawn(
-    'npx',
-    [
-      'redis-commander',
-      '--port',
-      REDIS_COMMANDER_PORT.toString(),
-      '--address',
-      '0.0.0.0',
-      '--redis-host',
-      process.env.REDIS_HOST || 'localhost',
-      '--redis-port',
-      process.env.REDIS_PORT || '6379',
-      '--redis-password',
-      process.env.REDIS_PASSWORD || '',
-      '--no-log-data',
-      '--noauth',
-    ],
-    {
-      env: process.env,
-    }
-  );
-
-  // Verificar que stdout no sea null antes de usarlo
-  if (redisCommanderProcess.stdout) {
-    redisCommanderProcess.stdout.on('data', (data) => {
-      console.log(`Redis Commander: ${data}`);
-    });
-  }
-
-  // Verificar que stderr no sea null antes de usarlo
-  if (redisCommanderProcess.stderr) {
-    redisCommanderProcess.stderr.on('data', (data) => {
-      console.error(`Redis Commander Error: ${data}`);
-    });
-  }
-
+// Función para detener Redis Commander
+const stopRedisCommander = () => {
   return new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), 2000);
+    if (redisCommanderProcess) {
+      console.log('Deteniendo Redis Commander...');
+
+      const cleanup = () => {
+        try {
+          if (redisCommanderProcess?.pid) {
+            // Verificar si el proceso existe antes de matarlo
+            process.kill(redisCommanderProcess.pid, 0);
+
+            if (process.platform !== 'win32') {
+              try {
+                process.kill(-redisCommanderProcess.pid, 'SIGKILL');
+              } catch (error) {
+                console.error('Error al matar proceso:', error);
+              }
+            }
+            process.kill(redisCommanderProcess.pid, 'SIGKILL');
+          }
+        } catch (error: unknown) {
+          // Ignorar error ESRCH (No such process)
+          if ((error as ErrnoException).code !== 'ESRCH') {
+            console.error('Error al matar proceso:', error);
+          }
+        } finally {
+          redisCommanderProcess = null;
+          resolve();
+        }
+      };
+
+      cleanup();
+    } else {
+      resolve();
+    }
   });
 };
 
-// Función para detener Redis Commander
-const stopRedisCommander = () => {
-  if (redisCommanderProcess) {
-    console.log('Deteniendo Redis Commander...');
+// Función para verificar si el puerto está en uso
+const isPortInUse = (port: number): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const tester = createServer()
+      .once('error', (err: Error & { code?: string }) => {
+        if (err.code === 'EADDRINUSE') {
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      })
+      .once('listening', () => {
+        tester.once('close', () => resolve(false)).close();
+      })
+      .listen(port, '0.0.0.0');
+  });
+};
 
-    // Enviar SIGTERM primero
-    redisCommanderProcess.kill('SIGTERM');
+// Función para matar proceso en puerto específico
+const killProcessOnPort = async (port: number): Promise<void> => {
+  return new Promise((resolve) => {
+    const command =
+      process.platform === 'win32'
+        ? `netstat -ano | findstr :${port}`
+        : `lsof -i :${port} -t`;
 
-    // Dar un tiempo para que se cierre graceful
-    setTimeout(() => {
-      // Si aún está corriendo, forzar el cierre
-      if (redisCommanderProcess) {
-        console.log('Forzando cierre de Redis Commander...');
-        redisCommanderProcess.kill('SIGKILL');
+    exec(
+      command,
+      { encoding: 'utf8' },
+      (error: Error | null, stdout: string) => {
+        if (error || !stdout) {
+          console.log(`No se encontró proceso en puerto ${port}`);
+          resolve();
+          return;
+        }
+
+        const pid =
+          process.platform === 'win32'
+            ? stdout.split('\n')[0].split(/\s+/)[4]
+            : stdout.trim();
+
+        if (pid) {
+          const killCommand =
+            process.platform === 'win32'
+              ? `taskkill /F /PID ${pid}`
+              : `kill -9 ${pid}`;
+
+          exec(killCommand, { encoding: 'utf8' }, (err: Error | null) => {
+            if (err) {
+              console.error(`Error al matar proceso en puerto ${port}:`, err);
+            } else {
+              console.log(`Proceso en puerto ${port} terminado`);
+            }
+            resolve();
+          });
+        } else {
+          resolve();
+        }
       }
-    }, 5000);
+    );
+  });
+};
 
-    // Manejar el evento de cierre
-    redisCommanderProcess.on('exit', (code, signal) => {
+// Función para iniciar Redis Commander
+const startRedisCommander = async () => {
+  try {
+    // Verificar si el puerto está en uso
+    const portInUse = await isPortInUse(Number(REDIS_COMMANDER_PORT));
+    if (portInUse) {
       console.log(
-        `Redis Commander cerrado con código ${code} y señal ${signal}`
+        `Puerto ${REDIS_COMMANDER_PORT} en uso, intentando liberar...`
       );
-      redisCommanderProcess = null;
+      await killProcessOnPort(Number(REDIS_COMMANDER_PORT));
+      // Esperar un momento para asegurar que el puerto se libere
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    // Asegurarse de que no haya instancias previas
+    await stopRedisCommander();
+
+    console.log('Iniciando Redis Commander con configuración:', {
+      port: REDIS_COMMANDER_PORT,
+      host: process.env.REDIS_HOST || 'localhost',
+      redisPort: process.env.REDIS_PORT || '6379',
     });
 
-    // Manejar errores
-    redisCommanderProcess.on('error', (err) => {
-      console.error('Error al cerrar Redis Commander:', err);
-      redisCommanderProcess = null;
+    return new Promise<void>((resolve, reject) => {
+      redisCommanderProcess = spawn(
+        'npx',
+        [
+          'redis-commander',
+          '--port',
+          REDIS_COMMANDER_PORT.toString(),
+          '--address',
+          '0.0.0.0',
+          '--redis-host',
+          process.env.REDIS_HOST || 'localhost',
+          '--redis-port',
+          process.env.REDIS_PORT || '6379',
+          '--redis-password',
+          process.env.REDIS_PASSWORD || '',
+          '--no-log-data',
+          '--noauth',
+        ],
+        {
+          env: process.env,
+          detached: true,
+          stdio: 'pipe',
+          ...(process.platform !== 'win32' && { setpgid: true }),
+        }
+      );
+
+      let isStarted = false;
+      let errorOutput = '';
+
+      if (redisCommanderProcess.stdout) {
+        redisCommanderProcess.stdout.on('data', (data) => {
+          const output = data.toString();
+          console.log(`Redis Commander: ${output}`);
+          if (output.includes('listening on')) {
+            isStarted = true;
+            resolve();
+          }
+        });
+      }
+
+      if (redisCommanderProcess.stderr) {
+        redisCommanderProcess.stderr.on('data', (data) => {
+          const errorMsg = data.toString();
+          errorOutput += errorMsg;
+          console.error(`Redis Commander Error: ${errorMsg}`);
+
+          if (errorMsg.includes('EADDRINUSE')) {
+            console.log('Detectado error de puerto en uso, reintentando...');
+            stopRedisCommander().then(() => {
+              setTimeout(() => startRedisCommander(), 1000);
+            });
+          }
+        });
+      }
+
+      redisCommanderProcess.on('error', (error) => {
+        console.error('Error al iniciar Redis Commander:', error);
+        reject(error);
+      });
+
+      redisCommanderProcess.on('exit', (code) => {
+        if (!isStarted) {
+          console.error(`Redis Commander se cerró con código ${code}`);
+          console.error('Error acumulado:', errorOutput);
+          reject(
+            new Error(`Redis Commander falló al iniciar. Código: ${code}`)
+          );
+        }
+      });
+
+      // Timeout de seguridad
+      setTimeout(() => {
+        if (!isStarted) {
+          reject(new Error('Timeout al iniciar Redis Commander'));
+        }
+      }, 10000);
     });
+  } catch (error) {
+    console.error('Error al iniciar Redis Commander:', error);
+    await stopRedisCommander();
+    throw error;
   }
 };
+
 // Configurar WebSocket con tipado adecuado
 export const setupAdminWebSocket = (server: Server) => {
   const wss = new WebSocketServer({ server, path: '/admin/redis-ws' });
+  let activeConnections = 0;
 
   wss.on('connection', (ws: WebSocket) => {
     console.log('Admin cliente conectado:', new Date().toISOString());
     let heartbeatInterval: ReturnType<typeof setInterval>;
+    let missedHeartbeats = 0;
+    let redisCommanderWindow: string | null = null;
+    let isAuthenticated = false;
+    let sessionTimeout: ReturnType<typeof setTimeout>;
+
+    activeConnections++;
+
+    // Función para cerrar la sesión
+    const closeSession = () => {
+      console.log('Sesión expirada después de 10 minutos');
+      ws.send(
+        JSON.stringify({
+          type: 'session_expired',
+          message: 'Sesión expirada por tiempo',
+        })
+      );
+      ws.close();
+    };
+
+    // Verificar conexión activa más frecuentemente
+    const checkConnection = setInterval(() => {
+      if (missedHeartbeats >= 2) {
+        console.log('Cliente no responde, cerrando conexión...');
+        ws.close();
+      } else {
+        ws.ping();
+        missedHeartbeats++;
+      }
+    }, 5000);
+
+    ws.on('pong', () => {
+      missedHeartbeats = 0;
+    });
 
     ws.on('message', async (data: RawData) => {
       let message: WebSocketMessage;
+      try {
+        const messageStr = Buffer.isBuffer(data)
+          ? data.toString('utf-8')
+          : data.toString();
+        message = JSON.parse(messageStr);
 
-      // Verificar que data sea string
-      if (typeof data === 'string') {
-        try {
-          message = JSON.parse(data);
-        } catch (error) {
-          console.error('Error al parsear JSON:', error);
-          ws.send(
-            JSON.stringify({
-              type: 'error',
-              message: 'Formato JSON inválido',
-            })
-          );
-          return;
+        if (message.type === 'auth') {
+          if (message.password === ADMIN_PASSWORD) {
+            isAuthenticated = true;
+            console.log('Iniciando nueva sesión de Redis Commander...');
+            await startRedisCommander();
+            redisCommanderWindow = new Date().toISOString();
+
+            // Iniciar temporizador de 10 minutos
+            sessionTimeout = setTimeout(closeSession, 10 * 60 * 1000);
+
+            ws.send(
+              JSON.stringify({
+                type: 'auth',
+                success: true,
+                windowId: redisCommanderWindow,
+                sessionTimeout: 10 * 60,
+              })
+            );
+
+            heartbeatInterval = setInterval(() => {
+              if (ws.readyState === ws.OPEN) {
+                ws.send(
+                  JSON.stringify({
+                    type: 'heartbeat',
+                    windowId: redisCommanderWindow,
+                  })
+                );
+              }
+            }, 5000);
+          } else {
+            ws.send(
+              JSON.stringify({
+                type: 'auth',
+                success: false,
+                message: 'Contraseña incorrecta',
+              })
+            );
+          }
+        } else if (message.type === 'heartbeat' && isAuthenticated) {
+          missedHeartbeats = 0;
         }
-      } else if (Buffer.isBuffer(data)) {
-        const dataStr = data.toString('utf-8');
-        try {
-          message = JSON.parse(dataStr);
-        } catch (error) {
-          console.error('Error al parsear JSON desde Buffer:', error);
-          ws.send(
-            JSON.stringify({
-              type: 'error',
-              message: 'Formato JSON inválido',
-            })
-          );
-          return;
-        }
-      } else {
-        console.error('Tipo de datos no soportado:', typeof data);
+      } catch (error) {
+        console.error('Error procesando mensaje:', error);
         ws.send(
           JSON.stringify({
             type: 'error',
-            message: 'Tipo de datos no soportado',
+            message: 'Error procesando mensaje',
           })
         );
-        return;
       }
+    });
 
-      if (message.type === 'auth') {
-        if (message.password === ADMIN_PASSWORD) {
-          console.log('Iniciando nueva sesión de Redis Commander...');
-          await startRedisCommander();
-          ws.send(JSON.stringify({ type: 'auth', success: true }));
+    const handleDisconnect = async () => {
+      console.log('Cliente desconectado, limpiando recursos...');
+      clearInterval(heartbeatInterval);
+      clearInterval(checkConnection);
+      globalThis.clearTimeout(sessionTimeout);
 
-          // Iniciar heartbeat
-          heartbeatInterval = setInterval(() => {
-            ws.send(JSON.stringify({ type: 'heartbeat' }));
-          }, 30000);
-        } else {
-          console.log('Intento fallido de autenticación');
-          ws.send(
-            JSON.stringify({
-              type: 'auth',
-              success: false,
-              message: 'Contraseña incorrecta',
-            })
+      if (isAuthenticated) {
+        activeConnections--;
+        if (activeConnections === 0) {
+          console.log(
+            'Último cliente desconectado, deteniendo Redis Commander...'
           );
+          await stopRedisCommander();
         }
       }
-    });
+    };
 
-    ws.on('close', () => {
-      console.log('Admin cliente desconectado:', new Date().toISOString());
-      clearInterval(heartbeatInterval);
-      stopRedisCommander();
-    });
-
-    // Manejar errores de WebSocket
-    ws.on('error', (error) => {
-      console.error('Error en WebSocket:', error);
-      clearInterval(heartbeatInterval);
-      stopRedisCommander();
-    });
+    ws.on('close', handleDisconnect);
+    ws.on('error', handleDisconnect);
   });
 };
 

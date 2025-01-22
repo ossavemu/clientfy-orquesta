@@ -1,10 +1,9 @@
-import express, { type ErrorRequestHandler } from 'express';
+import { type ErrorRequestHandler } from 'express';
 import './config/env';
 import { getServerConfig } from './config/server';
 import { errorHandler } from './middleware/errorHandler';
 import adminRoute, { setupAdminWebSocket } from './routes/admin/redis';
 import router from './routes/api';
-import dropletRoute from './routes/droplet/create';
 import { app, server } from './server';
 import { redisService } from './services/redis/redisService';
 import { redisSyncService } from './services/sync/redisSyncService';
@@ -25,18 +24,9 @@ app.use((req, res, next) => {
   }
 });
 
-// Middleware de logging
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.url}`);
-  next();
-});
-
-app.use(express.json());
-
 // Rutas
 app.use('/api', router);
 app.use('/admin/redis', adminRoute);
-app.use('/api', dropletRoute);
 
 // Manejador de errores
 app.use(errorHandler as ErrorRequestHandler);

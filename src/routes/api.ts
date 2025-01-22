@@ -1,16 +1,18 @@
 import { router } from '@src/server';
 import calendarCredentialsRoute from './calendar/credentials';
+
 import createRoute from './instance/create';
-import deleteRoute from './instance/delete';
+import deleteInstanceRoute from './instance/delete';
 import listRoute from './instance/list';
 import restartRoute from './instance/restart';
 import statusRoute from './instance/status';
 import generatePasswordRoute from './password/generate';
 
+// Rutas de instancias
 router.use('/instance', createRoute);
 router.use('/instance', statusRoute);
 router.use('/instance', restartRoute);
-router.use('/instance', deleteRoute);
+router.use('/instance', deleteInstanceRoute);
 router.use('/instance', listRoute);
 
 // Ruta para generación de contraseñas

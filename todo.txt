@@ -1,0 +1,649 @@
+Archivos de entrenamiento	
+import { getTrainingFiles, uploadTrainingFile } from "@/lib/azureStorage";
+import { NextResponse } from "next/server";
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB en bytes
+
+export async function POST(request: Request) {
+  try {
+    const formData = await request.formData();
+    const files = formData.getAll("files") as File[];
+    const names = formData.getAll("names") as string[];
+    const phoneNumber = formData.get("phoneNumber") as string;
+
+    if (!files.length || !phoneNumber) {
+      return NextResponse.json(
+        { error: "Se requieren archivos y número de teléfono" },
+        { status: 400 }
+      );
+    }
+
+    // Validar tamaño de archivos
+    const oversizedFiles = files.filter((file) => file.size > MAX_FILE_SIZE);
+    if (oversizedFiles.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Algunos archivos exceden el límite de 2MB",
+          files: oversizedFiles.map((f) => f.name),
+        },
+        { status: 400 }
+      );
+    }
+
+    const uploadPromises = files.map(async (file, index) => {
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const fileName = names[index] || file.name;
+        const url = await uploadTrainingFile(buffer, fileName, phoneNumber);
+        return { success: true, url, name: fileName };
+      } catch (error) {
+        console.error(`Error al subir archivo ${file.name}:`, error);
+        return { success: false, error: "Error al subir el archivo" };
+      }
+    });
+
+    const results = await Promise.all(uploadPromises);
+
+    const allSuccessful = results.every((r) => r.success);
+    const successfulFiles = results
+      .filter((r) => r.success)
+      .map((r) => ({
+        name: r.name,
+        url: r.url,
+      }));
+
+    if (!allSuccessful) {
+      return NextResponse.json(
+        {
+          error: "Algunos archivos no pudieron ser subidos",
+          files: successfulFiles,
+        },
+        { status: 207 }
+      );
+    }
+
+    return NextResponse.json({ success: true, files: successfulFiles });
+  } catch (error) {
+    console.error("Error en POST /api/training-files:", error);
+    return NextResponse.json(
+      {
+        error: "Error al subir los archivos",
+        details: error,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const phoneNumber = searchParams.get("phoneNumber");
+
+    if (!phoneNumber) {
+      return NextResponse.json(
+        { error: "Se requiere número de teléfono" },
+        { status: 400 }
+      );
+    }
+
+    const files = await getTrainingFiles(phoneNumber);
+    return NextResponse.json({ success: true, files });
+  } catch (error: unknown) {
+    console.error("Error en GET /api/training-files:", error);
+    return NextResponse.json(
+      {
+        error: "Error al obtener los archivos",
+        details: error,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+Borrar
+
+import { deleteFile } from '@/lib/azureStorage';
+import { NextResponse } from 'next/server';
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const phoneNumber = searchParams.get('phoneNumber');
+    const fileName = searchParams.get('fileName');
+    const type = searchParams.get('type') as 'image' | 'training';
+
+    if (!phoneNumber || !fileName || !type) {
+      return NextResponse.json(
+        { error: 'Se requieren número de teléfono, nombre de archivo y tipo' },
+        { status: 400 }
+      );
+    }
+
+    if (type !== 'image' && type !== 'training') {
+      return NextResponse.json(
+        { error: 'Tipo de archivo inválido' },
+        { status: 400 }
+      );
+    }
+
+    const result = await deleteFile(phoneNumber, fileName, type);
+
+    if (!result.success) {
+      return NextResponse.json(
+        { error: result.error || 'Error al eliminar el archivo' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Archivo eliminado exitosamente',
+    });
+  } catch (error) {
+    console.error('Error en DELETE /api/files/delete:', error);
+    return NextResponse.json(
+      {
+        error: 'Error al eliminar el archivo',
+        details: error,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+Imágenes
+
+import { getUserImages, uploadImage } from '@/lib/azureStorage';
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request) {
+  try {
+    const formData = await request.formData();
+    const files = formData.getAll('files') as File[];
+    const names = formData.getAll('names') as string[];
+    const phoneNumber = formData.get('phoneNumber') as string;
+
+    if (!files.length || !phoneNumber) {
+      return NextResponse.json(
+        { error: 'Se requieren archivos y número de teléfono' },
+        { status: 400 }
+      );
+    }
+
+    const uploadPromises = files.map(async (file, index) => {
+      try {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const fileName = names[index] || file.name;
+        const url = await uploadImage(buffer, fileName, phoneNumber);
+        return { success: true, url };
+      } catch (error) {
+        console.error(`Error al subir imagen ${file.name}:`, error);
+        return { success: false, error: 'Error al subir la imagen' };
+      }
+    });
+
+    const results = await Promise.all(uploadPromises);
+
+    // Verificar si todas las subidas fueron exitosas
+    const allSuccessful = results.every((r) => r.success);
+    const urls = results.filter((r) => r.success).map((r) => r.url);
+
+    if (!allSuccessful) {
+      return NextResponse.json(
+        {
+          error: 'Algunas imágenes no pudieron ser subidas',
+          urls, // Devolver las URLs de las imágenes que sí se subieron
+        },
+        { status: 207 } // Partial success
+      );
+    }
+
+    return NextResponse.json({ success: true, urls });
+  } catch (error) {
+    console.error('Error en POST /api/images:', error);
+    return NextResponse.json(
+      {
+        error: 'Error al subir las imágenes',
+        details: error,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const phoneNumber = searchParams.get('phoneNumber');
+
+    if (!phoneNumber) {
+      return NextResponse.json(
+        { error: 'Se requiere número de teléfono' },
+        { status: 400 }
+      );
+    }
+
+    const images = await getUserImages(phoneNumber);
+    return NextResponse.json({ success: true, images });
+  } catch (error) {
+    console.error('Error en GET /api/images:', error);
+    return NextResponse.json(
+      {
+        error: 'Error al obtener las imágenes',
+        details: error,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+
+Prompt
+import { getPrompt, savePrompt } from '@/lib/azureStorage';
+import { NextResponse } from 'next/server';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const phoneNumber = searchParams.get('phoneNumber');
+
+    if (!phoneNumber) {
+      return NextResponse.json(
+        { error: 'Se requiere número de teléfono' },
+        { status: 400 }
+      );
+    }
+
+    const result = await getPrompt(phoneNumber);
+
+    if (!result.success) {
+      if (!result.exists) {
+        return NextResponse.json(
+          { error: 'Prompt no encontrado' },
+          { status: 404 }
+        );
+      }
+      throw new Error('Error al obtener el prompt');
+    }
+
+    return NextResponse.json({
+      success: true,
+      prompt: result.prompt,
+      url: result.url,
+    });
+  } catch (error) {
+    console.error('Error en GET /api/prompt:', error);
+    return NextResponse.json(
+      {
+        error: 'Error al obtener el prompt',
+        details: error,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const { phoneNumber, prompt } = await request.json();
+
+    if (!phoneNumber || !prompt) {
+      return NextResponse.json(
+        { error: 'Se requieren número de teléfono y prompt' },
+        { status: 400 }
+      );
+    }
+
+    const result = await savePrompt(phoneNumber, prompt);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Prompt guardado exitosamente',
+      url: result.url,
+      prompt: result.prompt,
+    });
+  } catch (error) {
+    console.error('Error en POST /api/prompt:', error);
+    return NextResponse.json(
+      {
+        error: 'Error al guardar el prompt',
+        details: error,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+
+Servicio
+
+import { BlobSASPermissions, BlobServiceClient } from "@azure/storage-blob";
+
+interface AzureError {
+  statusCode: number;
+  message?: string;
+}
+
+const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING || "";
+const blobServiceClient =
+  BlobServiceClient.fromConnectionString(connectionString);
+const containerName = "user-files";
+const promptContainerName = "prompts";
+
+export async function uploadImage(
+  file: Buffer,
+  fileName: string,
+  phoneNumber: string
+) {
+  try {
+    console.log("Iniciando subida de imagen:", { fileName, phoneNumber });
+
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+
+    // Crear contenedor si no existe, sin acceso público
+    await containerClient.createIfNotExists();
+    console.log("Contenedor verificado");
+
+    const blobPath = `${phoneNumber}/img/${fileName}.jpg`;
+    console.log("Ruta del blob:", blobPath);
+
+    const blockBlobClient = containerClient.getBlockBlobClient(blobPath);
+
+    console.log("Subiendo archivo...");
+    await blockBlobClient.upload(file, file.length, {
+      blobHTTPHeaders: { blobContentType: "image/jpeg" },
+    });
+    console.log("Archivo subido exitosamente");
+
+    // Generar URL con SAS token
+    const startsOn = new Date();
+    const expiresOn = new Date(
+      new Date().valueOf() + 365 * 24 * 60 * 60 * 1000
+    ); // 1 año
+
+    const permissions = new BlobSASPermissions();
+    permissions.read = true;
+
+    const sasUrl = await blockBlobClient.generateSasUrl({
+      permissions,
+      startsOn,
+      expiresOn,
+      contentType: "image/jpeg",
+      cacheControl: "public, max-age=31536000",
+    });
+
+    console.log("URL generada:", sasUrl);
+    return sasUrl;
+  } catch (error) {
+    console.error("Error detallado al subir imagen:", error);
+    throw error;
+  }
+}
+
+export async function getUserImages(phoneNumber: string) {
+  try {
+    console.log("Obteniendo imágenes para:", phoneNumber);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blobPrefix = `${phoneNumber}/img/`;
+    const blobs = containerClient.listBlobsFlat({ prefix: blobPrefix });
+
+    const imageUrls = [];
+    for await (const blob of blobs) {
+      const blobClient = containerClient.getBlockBlobClient(blob.name);
+
+      // Generar URL con SAS token
+      const startsOn = new Date();
+      const expiresOn = new Date(
+        new Date().valueOf() + 365 * 24 * 60 * 60 * 1000
+      );
+
+      const permissions = new BlobSASPermissions();
+      permissions.read = true;
+
+      const sasUrl = await blobClient.generateSasUrl({
+        permissions,
+        startsOn,
+        expiresOn,
+        cacheControl: "public, max-age=31536000",
+      });
+
+      imageUrls.push({
+        name:
+          blob.name
+            .split("/")
+            .pop()
+            ?.replace(/\.jpg$/, "") || "",
+        url: sasUrl,
+      });
+    }
+
+    console.log("Imágenes encontradas:", imageUrls.length);
+    return imageUrls;
+  } catch (error) {
+    console.error("Error al obtener imágenes:", error);
+    throw error;
+  }
+}
+
+export async function uploadTrainingFile(
+  file: Buffer,
+  fileName: string,
+  phoneNumber: string
+) {
+  try {
+    console.log("Iniciando subida de archivo de entrenamiento:", {
+      fileName,
+      phoneNumber,
+    });
+
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    await containerClient.createIfNotExists();
+
+    const blobPath = `${phoneNumber}/training/${fileName}`;
+    console.log("Ruta del blob:", blobPath);
+
+    const blockBlobClient = containerClient.getBlockBlobClient(blobPath);
+
+    console.log("Subiendo archivo...");
+    await blockBlobClient.upload(file, file.length);
+    console.log("Archivo subido exitosamente");
+
+    const startsOn = new Date();
+    const expiresOn = new Date(
+      new Date().valueOf() + 365 * 24 * 60 * 60 * 1000
+    ); // 1 año
+
+    const permissions = new BlobSASPermissions();
+    permissions.read = true;
+
+    const sasUrl = await blockBlobClient.generateSasUrl({
+      permissions,
+      startsOn,
+      expiresOn,
+    });
+
+    console.log("URL generada:", sasUrl);
+    return sasUrl;
+  } catch (error) {
+    console.error("Error detallado al subir archivo:", error);
+    throw error;
+  }
+}
+
+export async function getTrainingFiles(phoneNumber: string) {
+  try {
+    console.log("Obteniendo archivos de entrenamiento para:", phoneNumber);
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blobPrefix = `${phoneNumber}/training/`;
+    const blobs = containerClient.listBlobsFlat({ prefix: blobPrefix });
+
+    const files = [];
+    for await (const blob of blobs) {
+      const blobClient = containerClient.getBlockBlobClient(blob.name);
+
+      const startsOn = new Date();
+      const expiresOn = new Date(
+        new Date().valueOf() + 365 * 24 * 60 * 60 * 1000
+      );
+
+      const permissions = new BlobSASPermissions();
+      permissions.read = true;
+
+      const sasUrl = await blobClient.generateSasUrl({
+        permissions,
+        startsOn,
+        expiresOn,
+      });
+
+      files.push({
+        name: blob.name.split("/").pop() || "",
+        url: sasUrl,
+      });
+    }
+
+    console.log("Archivos encontrados:", files.length);
+    return files;
+  } catch (error) {
+    console.error("Error al obtener archivos:", error);
+    throw error;
+  }
+}
+
+export async function savePrompt(phoneNumber: string, prompt: string) {
+  try {
+    console.log("Guardando prompt para:", phoneNumber);
+
+    const containerClient =
+      blobServiceClient.getContainerClient(promptContainerName);
+    await containerClient.createIfNotExists();
+
+    const blobPath = `${phoneNumber}/prompt.txt`;
+    const blockBlobClient = containerClient.getBlockBlobClient(blobPath);
+
+    await blockBlobClient.upload(prompt, prompt.length, {
+      blobHTTPHeaders: { blobContentType: "text/plain" },
+    });
+
+    const startsOn = new Date();
+    const expiresOn = new Date(
+      new Date().valueOf() + 365 * 24 * 60 * 60 * 1000
+    );
+
+    const permissions = new BlobSASPermissions();
+    permissions.read = true;
+
+    const sasUrl = await blockBlobClient.generateSasUrl({
+      permissions,
+      startsOn,
+      expiresOn,
+    });
+
+    return {
+      success: true,
+      url: sasUrl,
+      prompt,
+    };
+  } catch (error) {
+    console.error("Error al guardar prompt:", error);
+    throw error;
+  }
+}
+
+export async function getPrompt(phoneNumber: string) {
+  try {
+    console.log("Obteniendo prompt para:", phoneNumber);
+
+    const containerClient =
+      blobServiceClient.getContainerClient(promptContainerName);
+    const blobPath = `${phoneNumber}/prompt.txt`;
+    const blockBlobClient = containerClient.getBlockBlobClient(blobPath);
+
+    try {
+      const downloadResponse = await blockBlobClient.download(0);
+      const prompt = await streamToText(downloadResponse.readableStreamBody);
+
+      const startsOn = new Date();
+      const expiresOn = new Date(
+        new Date().valueOf() + 365 * 24 * 60 * 60 * 1000
+      );
+
+      const permissions = new BlobSASPermissions();
+      permissions.read = true;
+
+      const sasUrl = await blockBlobClient.generateSasUrl({
+        permissions,
+        startsOn,
+        expiresOn,
+      });
+
+      return {
+        success: true,
+        url: sasUrl,
+        prompt,
+      };
+    } catch (error) {
+      const azureError = error as AzureError;
+      if (azureError.statusCode === 404) {
+        return { success: false, exists: false };
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error al obtener prompt:", error);
+    throw error;
+  }
+}
+
+// Función auxiliar para convertir ReadableStream a texto
+async function streamToText(
+  readableStream: NodeJS.ReadableStream | undefined
+): Promise<string> {
+  if (!readableStream) {
+    throw new Error("Stream no disponible");
+  }
+
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    readableStream.on("data", (data) => {
+      chunks.push(Buffer.from(data));
+    });
+    readableStream.on("end", () => {
+      resolve(Buffer.concat(chunks).toString("utf8"));
+    });
+    readableStream.on("error", reject);
+  });
+}
+
+export async function deleteFile(
+  phoneNumber: string,
+  fileName: string,
+  type: "image" | "training"
+) {
+  try {
+    console.log(`Eliminando archivo ${type}:`, { fileName, phoneNumber });
+
+    const containerClient = blobServiceClient.getContainerClient(containerName);
+    const blobPath =
+      type === "image"
+        ? `${phoneNumber}/img/${fileName}.jpg`
+        : `${phoneNumber}/training/${fileName}`;
+
+    const blockBlobClient = containerClient.getBlockBlobClient(blobPath);
+
+    const exists = await blockBlobClient.exists();
+    if (!exists) {
+      console.log("El archivo no existe en Azure:", blobPath);
+      return { success: false, error: "Archivo no encontrado" };
+    }
+
+    await blockBlobClient.delete();
+    console.log("Archivo eliminado exitosamente de Azure");
+
+    return { success: true };
+  } catch (error) {
+    console.error(`Error al eliminar archivo ${type}:`, error);
+    throw error;
+  }
+}
+

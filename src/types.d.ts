@@ -213,3 +213,36 @@ interface CustomResponse extends Partial<Response> {
   headers: Record<string, string>;
   body: string;
 }
+
+interface FileUploadRequest extends Request {
+  formData: () => Promise<FormData>;
+}
+
+interface TrainingResponse {
+  files?: Array<{ name: string; url: string }>;
+}
+
+interface ImageResponse {
+  urls?: string[];
+  images?: Array<{ name: string; url: string }>;
+  files?: string[];
+}
+
+interface S3SuccessResponse {
+  success: true;
+  url: string;
+  name: string;
+}
+
+interface S3ErrorResponse {
+  success: false;
+  error: string;
+}
+
+type S3Response = S3SuccessResponse | S3ErrorResponse;
+
+type FileUploadHandler = (
+  _req: FileUploadRequest,
+  _res: Response,
+  _next: NextFunction
+) => Promise<void>;

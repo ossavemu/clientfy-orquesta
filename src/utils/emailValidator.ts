@@ -10,7 +10,7 @@ const ALLOWED_DOMAINS = [
 ];
 
 export const validateEmail = async (email: string): Promise<void> => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
   if (!emailRegex.test(email)) {
     throw new Error('Error de validación: Formato de email inválido');

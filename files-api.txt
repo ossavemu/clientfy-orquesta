@@ -1,0 +1,267 @@
+DOCUMENTACIÓN API DE ARCHIVOS
+
+BASE URL: http://localhost:3000
+
+1. ARCHIVOS DE ENTRENAMIENTO
+---------------------------
+
+POST /files/training
+Sube uno o más archivos de entrenamiento
+
+Request:
+- Content-Type: multipart/form-data
+- Body:
+  * phoneNumber: string (requerido) - Número de teléfono del usuario
+  * files: File[] (requerido) - Array de archivos a subir (máx 6MB c/u)
+  * names: string[] (opcional) - Nombres personalizados para los archivos
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "files": [
+      {
+        "name": "archivo1.txt",
+        "url": "https://..."  // URL temporal válida por 1 hora
+      }
+    ]
+  }
+}
+
+Response 400:
+{
+  "success": false,
+  "message": "Se requieren archivos y número de teléfono"
+}
+
+Response 400:
+{
+  "success": false,
+  "message": "Algunos archivos exceden el límite de 6MB",
+  "data": {
+    "files": [
+      {
+        "name": "archivo_grande.txt",
+        "url": "No se pudo subir el archivo"
+      }
+    ]
+  }
+}
+
+Response 207:
+{
+  "success": false,
+  "message": "Algunos archivos no pudieron ser subidos",
+  "data": {
+    "files": [
+      {
+        "name": "archivo_exitoso.txt",
+        "url": "https://..."
+      }
+    ]
+  }
+}
+
+GET /files/training
+Obtiene la lista de archivos de entrenamiento
+
+Query params:
+- phoneNumber: string (requerido) - Número de teléfono del usuario
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "files": [
+      {
+        "name": "archivo1.txt",
+        "url": "https://..."  // URL temporal válida por 1 hora
+      }
+    ]
+  }
+}
+
+Response 400:
+{
+  "success": false,
+  "message": "Se requiere número de teléfono"
+}
+
+2. IMÁGENES
+-----------
+
+POST /files/images
+Sube una o más imágenes
+
+Request:
+- Content-Type: multipart/form-data
+- Body:
+  * phoneNumber: string (requerido) - Número de teléfono del usuario
+  * files: File[] (requerido) - Array de imágenes a subir (máx 6MB c/u)
+  * names: string[] (opcional) - Nombres personalizados para las imágenes
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "urls": [
+      "https://..."  // URLs temporales válidas por 1 hora
+    ]
+  }
+}
+
+Response 400:
+{
+  "success": false,
+  "message": "Se requieren archivos y número de teléfono"
+}
+
+Response 400:
+{
+  "success": false,
+  "message": "Algunos archivos exceden el límite de 6MB",
+  "data": {
+    "files": ["imagen_grande.jpg"]
+  }
+}
+
+Response 207:
+{
+  "success": false,
+  "message": "Algunas imágenes no pudieron ser subidas",
+  "data": {
+    "urls": ["https://..."]  // URLs de las imágenes que sí se subieron
+  }
+}
+
+GET /files/images
+Obtiene la lista de imágenes
+
+Query params:
+- phoneNumber: string (requerido) - Número de teléfono del usuario
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "images": [
+      {
+        "name": "imagen1",  // Sin extensión .jpg
+        "url": "https://..."  // URL temporal válida por 1 hora
+      }
+    ]
+  }
+}
+
+Response 400:
+{
+  "success": false,
+  "message": "Se requiere número de teléfono"
+}
+
+3. PROMPTS
+----------
+
+POST /files/prompt
+Guarda un prompt de texto
+
+Request:
+- Content-Type: application/json
+- Body:
+  {
+    "phoneNumber": string (requerido),
+    "prompt": string (requerido)
+  }
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "message": "Prompt guardado exitosamente",
+    "url": "https://...",  // URL temporal válida por 1 hora
+    "prompt": "texto del prompt"
+  }
+}
+
+Response 400:
+{
+  "success": false,
+  "message": "Se requieren número de teléfono y prompt"
+}
+
+GET /files/prompt
+Obtiene el prompt guardado
+
+Query params:
+- phoneNumber: string (requerido) - Número de teléfono del usuario
+
+Response 200:
+{
+  "success": true,
+  "data": {
+    "prompt": "texto del prompt",
+    "url": "https://..."  // URL temporal válida por 1 hora
+  }
+}
+
+Response 404:
+{
+  "success": false,
+  "message": "Prompt no encontrado"
+}
+
+4. ELIMINACIÓN DE ARCHIVOS
+-------------------------
+
+DELETE /files/delete
+Elimina un archivo específico
+
+Query params:
+- phoneNumber: string (requerido) - Número de teléfono del usuario
+- fileName: string (requerido) - Nombre del archivo a eliminar
+- type: string (requerido) - Tipo de archivo ('image' | 'training')
+
+Response 200:
+{
+  "success": true
+}
+
+Response 400:
+{
+  "success": false,
+  "message": "Se requieren número de teléfono, nombre de archivo y tipo"
+}
+
+Response 400:
+{
+  "success": false,
+  "message": "Tipo de archivo inválido"
+}
+
+Response 404:
+{
+  "success": false,
+  "message": "Archivo no encontrado"
+}
+
+NOTAS IMPORTANTES:
+-----------------
+
+1. Todas las URLs devueltas son temporales y expiran después de 1 hora
+2. El tamaño máximo permitido por archivo es de 6MB
+3. Las imágenes se guardan en formato JPG
+4. Los nombres de archivo no deben contener caracteres especiales
+5. El sistema mantiene un índice de archivos en Redis para mejor rendimiento
+6. Todos los endpoints pueden devolver error 500 en caso de fallo del servidor
+7. Los archivos se almacenan en S3 con la siguiente estructura:
+   - Imágenes: {phoneNumber}/img/{fileName}.jpg
+   - Training: {phoneNumber}/training/{fileName}
+   - Prompt: {phoneNumber}/prompt.txt
+
+CÓDIGOS DE ERROR:
+----------------
+200: Operación exitosa
+207: Operación parcialmente exitosa
+400: Error en la solicitud
+404: Recurso no encontrado
+500: Error interno del servidor
