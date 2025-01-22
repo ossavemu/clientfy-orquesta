@@ -1,19 +1,21 @@
-import { router } from '@src/server';
-import type { Server, WebSocketMessage } from '@src/types';
-
+import type { WebSocketMessage } from '@src/types';
 import { type ChildProcess, exec, spawn } from 'child_process';
+import { Router } from 'express';
 import { createServer } from 'net';
-
-interface ErrnoException extends Error {
-  code?: string;
-}
 
 import fs from 'fs';
 import { Buffer } from 'node:buffer';
 import path from 'path';
 import { clearInterval, setInterval } from 'timers';
 
+import type { Server } from 'node:http';
 import { type RawData, type WebSocket, WebSocketServer } from 'ws';
+
+const router = Router();
+
+interface ErrnoException extends Error {
+  code?: string;
+}
 
 // Usar la contraseña desde variables de entorno
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'ClientFy0.com';

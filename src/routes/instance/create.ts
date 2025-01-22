@@ -1,5 +1,4 @@
 import { authMiddleware } from '@src/middleware/authMiddleware';
-import { router } from '@src/server';
 import {
   createDroplet,
   waitForDropletActive,
@@ -9,8 +8,9 @@ import { stateManager } from '@src/services/instanceStateManager';
 import { initializeInstance } from '@src/services/ssh/initializeInstance';
 import { waitForSSH } from '@src/services/ssh/waitForSSH';
 import type { ApiResponse, CreateInstanceBody } from '@src/types';
+import { Router, type RequestHandler } from 'express';
 
-import { type RequestHandler } from 'express';
+const router = Router();
 
 const createInstance: RequestHandler<
   {},

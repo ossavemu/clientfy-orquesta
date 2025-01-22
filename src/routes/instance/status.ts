@@ -1,10 +1,10 @@
 import { authMiddleware } from '@src/middleware/authMiddleware';
-import { router } from '@src/server';
 import { stateManager } from '@src/services/instanceStateManager';
+import { Router, type RequestHandler } from 'express';
 
 import type { ApiResponse, InstanceState } from '@src/types';
 
-import type { RequestHandler } from 'express';
+const router = Router();
 
 const getInstanceStatus: RequestHandler<
   { numberphone: string },

@@ -1,13 +1,14 @@
 import { DO_API_URL, headers } from '@src/config/digitalocean';
 import { authMiddleware } from '@src/middleware/authMiddleware';
-import { router } from '@src/server';
 import { getExistingDroplet } from '@src/services/droplet/getExistingDroplet';
 import { stateManager } from '@src/services/instanceStateManager';
+import { Router, type RequestHandler } from 'express';
 
 import type { ApiResponse } from '@src/types';
 
 import axios from 'axios';
-import type { RequestHandler } from 'express';
+
+const router = Router();
 
 const restartInstance: RequestHandler<
   { numberphone: string },

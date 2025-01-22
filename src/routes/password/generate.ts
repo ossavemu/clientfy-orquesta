@@ -1,14 +1,13 @@
-import { router } from '@src/server';
 import {
   generateAndSendPassword,
   getPassword,
 } from '@src/services/password/passwordService';
 
 import type { ApiResponse } from '@src/types';
-import type { RequestHandler } from 'express';
+import { Router, type RequestHandler } from 'express';
 
-// Generar nueva contraseña
-// Generar nueva contraseña
+const router = Router();
+
 const generatePassword: RequestHandler<
   {},
   ApiResponse<{ email: string }>,

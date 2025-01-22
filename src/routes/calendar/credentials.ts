@@ -1,7 +1,8 @@
 import { authMiddleware } from '@src/middleware/authMiddleware';
-import { router } from '@src/server';
 import { getRedisClient } from '@src/services/redis/redisService';
-import type { Request, Response } from 'express';
+import { Router, type Request, type Response } from 'express';
+
+const router = Router();
 
 router.get(
   '/credentials',

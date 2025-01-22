@@ -1,6 +1,5 @@
 import { DO_API_URL, headers } from '@src/config/digitalocean';
 import { authMiddleware } from '@src/middleware/authMiddleware';
-import { router } from '@src/server';
 import type {
   ApiResponse,
   DODroplet,
@@ -9,7 +8,9 @@ import type {
 } from '@src/types';
 
 import axios from 'axios';
-import type { RequestHandler } from 'express';
+import { Router, type RequestHandler } from 'express';
+
+const router = Router();
 
 // Obtener todas las instancias (droplets)
 const listDroplets: RequestHandler<{}, ApiResponse<SimpleDroplet[]>> = async (

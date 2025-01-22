@@ -1,12 +1,16 @@
-import { type ErrorRequestHandler } from 'express';
+import express, { type ErrorRequestHandler } from 'express';
 import './config/env';
 import { getServerConfig } from './config/server';
 import { errorHandler } from './middleware/errorHandler';
+import adminPasswordRoute from './routes/admin/password';
 import adminRoute, { setupAdminWebSocket } from './routes/admin/redis';
 import router from './routes/api';
 import { app, server } from './server';
 import { redisService } from './services/redis/redisService';
 import { redisSyncService } from './services/sync/redisSyncService';
+
+// Agregar antes de las rutas
+app.use(express.json());
 
 // Configurar CORS
 app.use((req, res, next) => {
@@ -25,8 +29,17 @@ app.use((req, res, next) => {
 });
 
 // Rutas
-app.use('/api', router);
 app.use('/admin/redis', adminRoute);
+app.use('/admin/password', adminPasswordRoute);
+app.use('/api', router);
+
+// Un solo middleware para todas las rutas no encontradas
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Ruta no encontrada',
+    path: req.path,
+  });
+});
 
 // Manejador de errores
 app.use(errorHandler as ErrorRequestHandler);
