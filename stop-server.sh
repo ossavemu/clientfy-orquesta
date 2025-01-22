@@ -6,21 +6,26 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-# Verificar si el servicio systemd está activo
-if systemctl is-active --quiet clientfy-orquesta; then
-  echo -e "${YELLOW}Deteniendo servicio systemd...${NC}"
-  systemctl stop clientfy-orquesta
-  echo -e "${GREEN}Servicio detenido${NC}"
-  exit 0
+# Desactivar y eliminar el servicio systemd si existe
+if systemctl list-unit-files | grep -q clientfy-orquesta; then
+    echo -e "${YELLOW}Eliminando servicio systemd...${NC}"
+    systemctl stop clientfy-orquesta
+    systemctl disable clientfy-orquesta
+    rm /etc/systemd/system/clientfy-orquesta.service
+    systemctl daemon-reload
+    echo -e "${GREEN}Servicio systemd eliminado${NC}"
 fi
 
-# Si no está corriendo como servicio, verificar el archivo PID
+# Detener screen si está ejecutándose
+if screen -list | grep -q "clientfy"; then
+    echo -e "${YELLOW}Deteniendo screen clientfy...${NC}"
+    screen -S clientfy -X quit
+    echo -e "${GREEN}Screen detenido${NC}"
+fi
+
+# Eliminar archivo PID si existe
 if [ -f "server.pid" ]; then
-    PID=$(cat server.pid)
-    echo -e "${YELLOW}Deteniendo servidor con PID: $PID${NC}"
-    kill $PID
     rm server.pid
-    echo -e "${GREEN}Servidor detenido${NC}"
-else
-    echo -e "${RED}No se encontró un servidor en ejecución${NC}"
-fi 
+fi
+
+echo -e "${GREEN}Servidor detenido completamente${NC}" 
