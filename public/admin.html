@@ -97,14 +97,22 @@
               if (data.success) {
                 status.textContent = 'Conectado exitosamente';
                 status.className = 'success';
-                redisCommanderWindow = window.open(
-                  `http://${window.location.hostname}:${port}`,
-                  '_blank'
-                );
+                const redisCommanderUrl = `http://${window.location.hostname}:${port}`;
+                console.log('Abriendo Redis Commander en:', redisCommanderUrl);
+                
+                redisCommanderWindow = window.open(redisCommanderUrl, '_blank');
+                
+                if (redisCommanderWindow === null) {
+                  status.textContent = 'El navegador bloqueó la ventana emergente. Por favor, permita las ventanas emergentes y vuelva a intentar.';
+                  status.className = 'error';
+                }
               } else {
                 status.textContent = data.message || 'Error de autenticación';
                 status.className = 'error';
               }
+            } else if (data.type === 'error') {
+              status.textContent = data.message || 'Error en el servidor';
+              status.className = 'error';
             }
           };
 
@@ -120,7 +128,7 @@
             }
           };
         } catch (error) {
-          status.textContent = 'Error al obtener la configuración';
+          status.textContent = 'Error al obtener la configuración: ' + error.message;
           status.className = 'error';
           console.error('Error:', error);
         }

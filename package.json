@@ -9,7 +9,9 @@
     "dev": "bun --watch src/app.ts",
     "lint": "eslint \"**/*.ts\"",
     "lint:fix": "eslint \"**/*.ts\" --fix",
-    "log": "tail -f server.log"
+    "log": "tail -f server.log",
+    "server:start": "./stop-server.sh && ./start-server.sh && bun log",
+    "server:stop": "./stop-server.sh"
   },
   "dependencies": {
     "ws": "^8.18.0",
