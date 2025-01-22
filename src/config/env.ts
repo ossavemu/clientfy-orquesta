@@ -1,7 +1,3 @@
-import { config } from 'dotenv';
-
-config();
-
 export const requiredEnvVars = [
   'REDIS_HOST',
   'REDIS_PORT',
