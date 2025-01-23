@@ -17,7 +17,6 @@ async function syncToUpstash() {
     // Obtener todas las keys de Redis local
     const keys = await localRedis.keys('*');
     console.log(`Encontradas ${keys.length} claves para sincronizar`);
-
     for (const key of keys) {
       try {
         // Obtener el tipo de la key
