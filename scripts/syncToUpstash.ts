@@ -1,24 +1,22 @@
 import Redis from 'ioredis';
 
 const localRedis = new Redis({
-  host: globalThis.process.env.REDIS_HOST || 'localhost',
-  port: Number(globalThis.process.env.REDIS_PORT) || 6379,
-  password: globalThis.process.env.REDIS_PASSWORD,
+  host: process.env.REDIS_HOST || 'localhost',
+  port: Number(process.env.REDIS_PORT) || 6379,
+  password: process.env.REDIS_PASSWORD,
 });
 
-const upstashRedis = new Redis(globalThis.process.env.UPSTASH_REDIS_URL || '', {
+const upstashRedis = new Redis(process.env.UPSTASH_REDIS_URL || '', {
   tls: { rejectUnauthorized: false },
 });
 
 async function syncToUpstash() {
   try {
-    globalThis.console.log('Iniciando sincronización con Upstash...');
+    console.log('Iniciando sincronización con Upstash...');
 
     // Obtener todas las keys de Redis local
     const keys = await localRedis.keys('*');
-    globalThis.console.log(
-      `Encontradas ${keys.length} claves para sincronizar`
-    );
+    console.log(`Encontradas ${keys.length} claves para sincronizar`);
 
     for (const key of keys) {
       try {
@@ -56,14 +54,21 @@ async function syncToUpstash() {
             break;
           }
           case 'zset': {
-            const zsetMembers = await localRedis.zrange(key, 0, -1, 'WITHSCORES');
+            const zsetMembers = await localRedis.zrange(
+              key,
+              0,
+              -1,
+              'WITHSCORES'
+            );
             if (zsetMembers.length > 0) {
               await upstashRedis.zadd(key, ...zsetMembers);
             }
             break;
           }
           default:
-            globalThis.console.log(`Tipo no soportado para key ${key}: ${type}`);
+            globalThis.console.log(
+              `Tipo no soportado para key ${key}: ${type}`
+            );
             continue;
         }
 
@@ -72,15 +77,16 @@ async function syncToUpstash() {
           await upstashRedis.expire(key, ttl);
         }
 
+        console.log(`✓ Sincronizada clave: ${key}`);
         globalThis.console.log(`✓ Sincronizada clave: ${key} (${type})`);
       } catch (error) {
-        globalThis.console.error(`Error sincronizando key ${key}:`, error);
+        console.error(`Error sincronizando key ${key}:`, error);
       }
     }
 
-    globalThis.console.log('¡Sincronización completada!');
+    console.log('¡Sincronización completada!');
   } catch (error) {
-    globalThis.console.error('Error durante la sincronización:', error);
+    console.error('Error durante la sincronización:', error);
   } finally {
     // Cerrar conexiones
     await localRedis.quit();

@@ -98,9 +98,9 @@ export class RedisService {
     }
   }
 
-  async set(
+  async set<T>(
     key: string,
-    value: PasswordInfo,
+    value: T,
     expirationSeconds: number | null = null
   ): Promise<void> {
     try {
