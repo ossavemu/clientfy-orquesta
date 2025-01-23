@@ -3,13 +3,21 @@ import type { PasswordInfo } from '@src/types';
 
 import Redis from 'ioredis';
 
-class RedisService {
+export class RedisService {
+  private static instance: RedisService;
   client: Redis | null;
   isConnected: boolean;
 
-  constructor() {
+  private constructor() {
     this.client = null;
     this.isConnected = false;
+  }
+
+  static getInstance(): RedisService {
+    if (!RedisService.instance) {
+      RedisService.instance = new RedisService();
+    }
+    return RedisService.instance;
   }
 
   async connect(): Promise<Redis> {
@@ -24,45 +32,41 @@ class RedisService {
         password: redisConfig.password,
         db: Number(redisConfig.db),
         retryStrategy(times: number): number | null {
-          const maxRetryTime = 30000; // 30 segundos máximo
-          const delay = Math.min(times * 50, maxRetryTime);
+          if (times > 5) {
+            console.log('Máximo número de reintentos alcanzado');
+            return null; // detener reintentos después de 5 intentos
+          }
+          const delay = Math.min(times * 1000, 5000);
           return delay;
         },
-        maxRetriesPerRequest: 3,
-        connectTimeout: 10000,
+        maxRetriesPerRequest: 1,
+        connectTimeout: 5000,
+        lazyConnect: true, // No conectar automáticamente
       });
 
-      this.client.on('connect', () => {
-        if (!this.isConnected) {
-          console.log('Conectado a Redis exitosamente');
-          this.isConnected = true;
-        }
-      });
-
-      this.client.on('error', (error: Error) => {
-        if (!error.message.includes('connect ECONNREFUSED')) {
-          console.error('Error en la conexión Redis:', error);
-        }
-        this.isConnected = false;
-      });
-
-      this.client.on('ready', () => {
+      // Manejar eventos una sola vez
+      this.client.once('connect', () => {
+        console.log('Conectado a Redis exitosamente');
         this.isConnected = true;
       });
 
-      this.client.on('end', () => {
-        this.isConnected = false;
+      this.client.on('error', (error: Error) => {
+        // Solo logear el primer error de conexión
+        if (!this.isConnected && !error.message.includes('ECONNREFUSED')) {
+          console.error('Error en la conexión Redis:', error);
+        }
       });
 
-      await this.configureRedis();
+      // Intentar conectar explícitamente
+      await this.client.connect();
+      
+      if (this.isConnected) {
+        await this.configureRedis();
+      }
 
       return this.client;
     } catch (error) {
-      if (error instanceof Error) {
-        console.error('Error inicializando Redis:', error.message);
-      } else {
-        console.error('Error inicializando Redis:', error);
-      }
+      console.error('Error fatal inicializando Redis:', error);
       throw error;
     }
   }
@@ -162,17 +166,11 @@ class RedisService {
   }
 }
 
-export const redisService = new RedisService();
+// Exportar una única instancia
+export const redisService = RedisService.getInstance();
 
-let redisClient: Redis | null = null;
-
+// Eliminar getRedisClient ya que usaremos la instancia única
 export const getRedisClient = async () => {
-  if (!redisClient) {
-    redisClient = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: Number(process.env.REDIS_PORT) || 6379,
-      password: process.env.REDIS_PASSWORD,
-    });
-  }
-  return redisClient;
+  await redisService.connect();
+  return redisService.client;
 };

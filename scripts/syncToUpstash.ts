@@ -21,22 +21,60 @@ async function syncToUpstash() {
     );
 
     for (const key of keys) {
-      // Obtener valor y TTL
-      const [value, ttl] = await Promise.all([
-        localRedis.get(key),
-        localRedis.ttl(key),
-      ]);
+      try {
+        // Obtener el tipo de la key
+        const type = await localRedis.type(key);
+        const ttl = await localRedis.ttl(key);
 
-      if (value) {
-        // Sincronizar valor
-        await upstashRedis.set(key, value);
+        switch (type) {
+          case 'string': {
+            const value = await localRedis.get(key);
+            if (value) {
+              await upstashRedis.set(key, value);
+            }
+            break;
+          }
+          case 'hash': {
+            const hashValue = await localRedis.hgetall(key);
+            if (Object.keys(hashValue).length > 0) {
+              await upstashRedis.hmset(key, hashValue);
+            }
+            break;
+          }
+          case 'set': {
+            const members = await localRedis.smembers(key);
+            if (members.length > 0) {
+              await upstashRedis.sadd(key, ...members);
+            }
+            break;
+          }
+          case 'list': {
+            const listValue = await localRedis.lrange(key, 0, -1);
+            if (listValue.length > 0) {
+              await upstashRedis.rpush(key, ...listValue);
+            }
+            break;
+          }
+          case 'zset': {
+            const zsetMembers = await localRedis.zrange(key, 0, -1, 'WITHSCORES');
+            if (zsetMembers.length > 0) {
+              await upstashRedis.zadd(key, ...zsetMembers);
+            }
+            break;
+          }
+          default:
+            globalThis.console.log(`Tipo no soportado para key ${key}: ${type}`);
+            continue;
+        }
 
         // Sincronizar TTL si existe
         if (ttl > 0) {
           await upstashRedis.expire(key, ttl);
         }
 
-        globalThis.console.log(`✓ Sincronizada clave: ${key}`);
+        globalThis.console.log(`✓ Sincronizada clave: ${key} (${type})`);
+      } catch (error) {
+        globalThis.console.error(`Error sincronizando key ${key}:`, error);
       }
     }
 
