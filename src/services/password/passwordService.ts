@@ -1,16 +1,9 @@
 import { sendPasswordEmail } from '@src/services/email/emailService';
 import { redisService } from '@src/services/redis/redisService';
 import { validateEmail } from '@src/utils/emailValidator';
+import { formatTimestamp } from '@src/utils/time';
 
 import KSUID from 'ksuid';
-
-const formatTimestamp = () => {
-  return new Date().toLocaleString('es-ES', {
-    dateStyle: 'full',
-    timeStyle: 'long',
-    timeZone: 'America/Bogota',
-  });
-};
 
 export const generateAndSendPassword = async (email: string) => {
   try {
@@ -117,10 +110,10 @@ export const validateCredentials = async (email: string, password: string) => {
       success: true,
       email,
       isValid,
-      message: isValid 
+      message: isValid
         ? 'Las credenciales son válidas'
         : 'La contraseña es incorrecta',
-      lastUpdate: passwordInfo.updated_at
+      lastUpdate: passwordInfo.updated_at,
     };
   } catch (error) {
     console.error('Error validando credenciales:', error);

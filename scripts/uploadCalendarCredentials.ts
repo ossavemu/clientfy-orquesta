@@ -8,9 +8,9 @@ const __dirname = path.dirname(__filename);
 
 // Configuración de Redis desde variables de entorno
 const redis = new Redis({
-  host: globalThis.process.env.REDIS_HOST || 'localhost',
-  port: Number(globalThis.process.env.REDIS_PORT) || 6379,
-  password: globalThis.process.env.REDIS_PASSWORD || '',
+  host: process.env.REDIS_HOST || 'localhost',
+  port: Number(process.env.REDIS_PORT) || 6379,
+  password: process.env.REDIS_PASSWORD || '',
 });
 
 async function uploadCredentials() {
@@ -24,13 +24,13 @@ async function uploadCredentials() {
 
     // Guardar en Redis
     await redis.set('CALENDAR_CREDENTIALS', credentials);
-    globalThis.console.log('Credenciales subidas exitosamente a Redis');
+    console.log('Credenciales subidas exitosamente a Redis');
 
     // Cerrar la conexión
     await redis.quit();
   } catch (error) {
-    globalThis.console.error('Error al subir credenciales:', error);
-    globalThis.process.exit(1);
+    console.error('Error al subir credenciales:', error);
+    process.exit(1);
   }
 }
 

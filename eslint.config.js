@@ -20,6 +20,8 @@ export default [
         console: 'readonly',
         setTimeout: 'readonly',
         Bun: 'readonly',
+        clearTimeout: 'readonly',
+        crypto: 'readonly',
       },
     },
     plugins: {

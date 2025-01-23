@@ -359,7 +359,7 @@ export const setupAdminWebSocket = (server: Server) => {
       console.log('Cliente desconectado, limpiando recursos...');
       clearInterval(heartbeatInterval);
       clearInterval(checkConnection);
-      globalThis.clearTimeout(sessionTimeout);
+      clearTimeout(sessionTimeout);
 
       if (isAuthenticated) {
         activeConnections--;

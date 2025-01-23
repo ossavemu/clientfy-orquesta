@@ -247,3 +247,12 @@ type FileUploadHandler = (
   _res: Response,
   _next: NextFunction
 ) => Promise<void>;
+
+export interface ResetPasswordRequestBody {
+  email: string;
+  servicePassword: string;
+}
+
+export interface ResetTokenInfo {
+  email: string;
+}

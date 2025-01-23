@@ -1,18 +1,27 @@
 import axios from 'axios';
 import '../src/config/env';
+import { redisService } from '../src/services/redis/redisService';
 
-const API_URL = process.env.API_URL || 'http://localhost:3000';
+const API_URL = process.env.API_URL || 'http://localhost:3001';
 const API_KEY = process.env.SECRET_KEY;
 
 async function testResetPassword() {
   try {
-    console.log('🔄 Probando restablecimiento de contraseña...');
+    console.log('🔄 Conectando a Redis...');
+    await redisService.connect();
 
+    const email = 'osanvem@gmail.com';
+    const redisKey = `password:${email}`;
+    console.log('🔍 Verificando datos en Redis para:', redisKey);
+    const passwordInfo = await redisService.get(redisKey);
+    console.log('📝 Datos encontrados:', passwordInfo);
+
+    console.log('🔄 Probando restablecimiento de contraseña...');
     const response = await axios.post(
       `${API_URL}/api/password/reset`,
       {
-        email: 'test@example.com',
-        servicePassword: 'password123',
+        email,
+        servicePassword: '2rza69YRdA',
       },
       {
         headers: {
@@ -30,6 +39,8 @@ async function testResetPassword() {
     } else {
       console.error('❌ Error inesperado:', error);
     }
+  } finally {
+    await redisService.disconnect();
   }
 }
 
