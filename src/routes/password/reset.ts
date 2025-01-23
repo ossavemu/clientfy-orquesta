@@ -1,5 +1,6 @@
 import { authMiddleware } from '@src/middleware/authMiddleware';
-import { sendPasswordResetEmail } from '@src/services/email/emailService';
+import { sendPasswordResetEmail } from '@src/services/email/reset';
+
 import { redisService } from '@src/services/redis/redisService';
 import type { ResetPasswordRequestBody, ResetTokenInfo } from '@src/types';
 import type { Request, Response } from 'express';

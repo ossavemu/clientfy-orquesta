@@ -1,3 +1,4 @@
+import type { EventHandler } from '@src/types';
 import { Redis } from 'ioredis';
 
 const RedisEvent = {
@@ -8,12 +9,10 @@ const RedisEvent = {
   SADD: 'sadd',
 } as const;
 
-type EventHandler = (_key: string) => Promise<void>;
-
 class RedisSyncService {
-  private localSubRedis: Redis | null = null;  // Solo para suscripciones
-  private localRedis: Redis | null = null;     // Para comandos regulares locales
-  private upstashRedis: Redis | null = null;   // Para Upstash
+  private localSubRedis: Redis | null = null; // Solo para suscripciones
+  private localRedis: Redis | null = null; // Para comandos regulares locales
+  private upstashRedis: Redis | null = null; // Para Upstash
   private isInitialized = false;
 
   private eventHandlers: Record<
@@ -58,7 +57,7 @@ class RedisSyncService {
         password: process.env.REDIS_PASSWORD,
         ...redisOptions,
       });
-      
+
       // Conexión para Upstash
       this.upstashRedis = new Redis(process.env.UPSTASH_REDIS_URL || '', {
         tls: { rejectUnauthorized: false },
@@ -75,7 +74,6 @@ class RedisSyncService {
       console.log('Conexiones Redis establecidas');
       await this.setupEventListeners();
       this.isInitialized = true;
-
     } catch (error) {
       console.error('Error inicializando servicio de sincronización:', error);
       throw error;
@@ -143,7 +141,7 @@ class RedisSyncService {
     if (!this.localRedis || !this.upstashRedis) return;
 
     try {
-      const value = await this.localRedis.get(key);  // Usar localRedis en lugar de localSubRedis
+      const value = await this.localRedis.get(key); // Usar localRedis en lugar de localSubRedis
       console.log(`Sincronizando SET - Key: ${key}, Valor:`, value);
 
       if (value) {
@@ -159,7 +157,7 @@ class RedisSyncService {
     if (!this.localRedis || !this.upstashRedis) return;
 
     try {
-      const hashValue = await this.localRedis.hgetall(key);  // Usar localRedis
+      const hashValue = await this.localRedis.hgetall(key); // Usar localRedis
       console.log(`Sincronizando HSET - Key: ${key}, Valor:`, hashValue);
 
       if (Object.keys(hashValue).length > 0) {
@@ -179,7 +177,7 @@ class RedisSyncService {
   private async handleExpireEvent(key: string): Promise<void> {
     if (!this.localRedis || !this.upstashRedis) return;
 
-    const ttl = await this.localRedis.ttl(key);  // Usar localRedis
+    const ttl = await this.localRedis.ttl(key); // Usar localRedis
     if (ttl && ttl > 0) {
       await this.upstashRedis.expire(key, ttl);
     }
@@ -205,71 +203,76 @@ class RedisSyncService {
     if (!this.localRedis || !this.upstashRedis) return;
 
     try {
-        console.log('Iniciando sincronización inicial de datos...');
-        const keys = await this.localRedis.keys('*');  // Usar localRedis en lugar de localSubRedis
+      console.log('Iniciando sincronización inicial de datos...');
+      const keys = await this.localRedis.keys('*'); // Usar localRedis en lugar de localSubRedis
 
-        for (const key of keys) {
-            try {
-                // Obtener el tipo de la key
-                const type = await this.localRedis.type(key);
+      for (const key of keys) {
+        try {
+          // Obtener el tipo de la key
+          const type = await this.localRedis.type(key);
 
-                switch (type) {
-                    case 'string': {
-                        const value = await this.localRedis.get(key);
-                        if (value) {
-                            await this.upstashRedis.set(key, value);
-                        }
-                        break;
-                    }
-                    case 'hash': {
-                        const hashValue = await this.localRedis.hgetall(key);
-                        if (Object.keys(hashValue).length > 0) {
-                            await this.upstashRedis.hmset(key, hashValue);
-                        }
-                        break;
-                    }
-                    case 'set': {
-                        const members = await this.localRedis.smembers(key);
-                        if (members.length > 0) {
-                            await this.upstashRedis.sadd(key, ...members);
-                        }
-                        break;
-                    }
-                    case 'list': {
-                        const listValue = await this.localRedis.lrange(key, 0, -1);
-                        if (listValue.length > 0) {
-                            await this.upstashRedis.rpush(key, ...listValue);
-                        }
-                        break;
-                    }
-                    case 'zset': {
-                        const zsetMembers = await this.localRedis.zrange(key, 0, -1, 'WITHSCORES');
-                        if (zsetMembers.length > 0) {
-                            await this.upstashRedis.zadd(key, ...zsetMembers);
-                        }
-                        break;
-                    }
-                    default:
-                        console.log(`Tipo no soportado para key ${key}: ${type}`);
-                        continue;
-                }
-
-                // Sincronizar TTL si existe
-                const ttl = await this.localRedis.ttl(key);
-                if (ttl > 0) {
-                    await this.upstashRedis.expire(key, ttl);
-                }
-
-                console.log(`✓ Sincronizada key: ${key} (${type})`);
-            } catch (error) {
-                console.error(`Error sincronizando key ${key}:`, error);
+          switch (type) {
+            case 'string': {
+              const value = await this.localRedis.get(key);
+              if (value) {
+                await this.upstashRedis.set(key, value);
+              }
+              break;
             }
-        }
+            case 'hash': {
+              const hashValue = await this.localRedis.hgetall(key);
+              if (Object.keys(hashValue).length > 0) {
+                await this.upstashRedis.hmset(key, hashValue);
+              }
+              break;
+            }
+            case 'set': {
+              const members = await this.localRedis.smembers(key);
+              if (members.length > 0) {
+                await this.upstashRedis.sadd(key, ...members);
+              }
+              break;
+            }
+            case 'list': {
+              const listValue = await this.localRedis.lrange(key, 0, -1);
+              if (listValue.length > 0) {
+                await this.upstashRedis.rpush(key, ...listValue);
+              }
+              break;
+            }
+            case 'zset': {
+              const zsetMembers = await this.localRedis.zrange(
+                key,
+                0,
+                -1,
+                'WITHSCORES'
+              );
+              if (zsetMembers.length > 0) {
+                await this.upstashRedis.zadd(key, ...zsetMembers);
+              }
+              break;
+            }
+            default:
+              console.log(`Tipo no soportado para key ${key}: ${type}`);
+              continue;
+          }
 
-        console.log('Sincronización inicial completada');
+          // Sincronizar TTL si existe
+          const ttl = await this.localRedis.ttl(key);
+          if (ttl > 0) {
+            await this.upstashRedis.expire(key, ttl);
+          }
+
+          console.log(`✓ Sincronizada key: ${key} (${type})`);
+        } catch (error) {
+          console.error(`Error sincronizando key ${key}:`, error);
+        }
+      }
+
+      console.log('Sincronización inicial completada');
     } catch (error) {
-        console.error('Error en sincronización inicial:', error);
-        throw error;
+      console.error('Error en sincronización inicial:', error);
+      throw error;
     }
   }
 }

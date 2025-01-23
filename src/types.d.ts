@@ -256,3 +256,5 @@ export interface ResetPasswordRequestBody {
 export interface ResetTokenInfo {
   email: string;
 }
+
+type EventHandler = (_key: string) => Promise<void>;

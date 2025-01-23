@@ -1,8 +1,8 @@
-import { sendPasswordEmail } from '@src/services/email/emailService';
 import { redisService } from '@src/services/redis/redisService';
 import { validateEmail } from '@src/utils/emailValidator';
 import { formatTimestamp } from '@src/utils/time';
 
+import { sendPasswordEmail } from '@src/services/email/servicePassword';
 import KSUID from 'ksuid';
 
 export const generateAndSendPassword = async (email: string) => {

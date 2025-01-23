@@ -21,7 +21,7 @@ async function testResetPassword() {
       `${API_URL}/api/password/reset`,
       {
         email,
-        servicePassword: '2rza69YRdA',
+        servicePassword: '2rzhguc7uG',
       },
       {
         headers: {
