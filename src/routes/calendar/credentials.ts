@@ -1,5 +1,5 @@
 import { authMiddleware } from '@src/middleware/authMiddleware';
-import { getRedisClient } from '@src/services/redis/redisService';
+import { redisService } from '@src/services/redis/redisService';
 import { Router, type Request, type Response } from 'express';
 
 const router = Router();
@@ -9,8 +9,10 @@ router.get(
   authMiddleware,
   async (_req: Request, res: Response): Promise<void> => {
     try {
-      const redis = await getRedisClient();
-      const credentials = await redis.get('CALENDAR_CREDENTIALS');
+      await redisService.connect();
+      const credentials = await redisService.client?.get(
+        'CALENDAR_CREDENTIALS'
+      );
 
       if (!credentials) {
         res.status(404).json({
