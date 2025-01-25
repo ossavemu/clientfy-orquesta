@@ -6,3 +6,6 @@ server.pid
 server.log
 bun.lockb
 CREDENTIALS.json
+.DS_Store
+bunfig.toml
+
