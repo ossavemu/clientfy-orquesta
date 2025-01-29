@@ -19,7 +19,6 @@ const createInstance: RequestHandler<
 > = async (req, res, next): Promise<void> => {
   const {
     numberphone,
-    provider = 'baileys',
     enableAppointments = false,
     enableAutoInvite = false,
   } = req.body;
@@ -53,21 +52,12 @@ const createInstance: RequestHandler<
 
     // Iniciar proceso asíncrono de creación
     const instanceName = `bot-${numberphone}`;
-    const userData = `#!/bin/bash
-echo "Instance initialized"
-echo "ENABLE_APPOINTMENTS=${enableAppointments}" >> /root/ClientFyAdmin/.env
-echo "ENABLE_AUTO_INVITE=${enableAutoInvite}" >> /root/ClientFyAdmin/.env`;
 
     // Proceso asíncrono
     (async () => {
       try {
         // 1. Crear droplet
-        const droplet = await createDroplet(
-          instanceName,
-          numberphone,
-          provider,
-          userData
-        );
+        const droplet = await createDroplet(instanceName, numberphone);
         stateManager.updateInstance(numberphone, {
           status: 'creating_droplet',
           progress: 25,
@@ -88,12 +78,17 @@ echo "ENABLE_AUTO_INVITE=${enableAutoInvite}" >> /root/ClientFyAdmin/.env`;
         const ipAddress = activeDroplet.networks.v4.find(
           (net) => net.type === 'public'
         )?.ip_address;
+
+        if (!ipAddress) {
+          throw new Error('No se pudo obtener la IP de la instancia');
+        }
+
         stateManager.updateInstance(numberphone, {
           status: 'waiting_for_ssh',
           progress: 50,
           instanceInfo: {
             instanceName: activeDroplet.name,
-            ip: ipAddress || null,
+            ip: ipAddress,
             state: activeDroplet.status,
             created: activeDroplet.created_at,
             numberphone,
@@ -102,21 +97,23 @@ echo "ENABLE_AUTO_INVITE=${enableAutoInvite}" >> /root/ClientFyAdmin/.env`;
         });
 
         // 3. Esperar conexión SSH
-        if (!ipAddress) {
-          throw new Error('No se pudo obtener la IP de la instancia');
-        }
-
         const sshReady = await waitForSSH(ipAddress);
         if (!sshReady) {
           throw new Error('No se pudo establecer conexión SSH');
         }
         stateManager.updateInstance(numberphone, {
-          status: 'initializing',
+          status: 'configuring',
           progress: 75,
         });
 
         // 4. Inicializar instancia
-        await initializeInstance(ipAddress);
+        await initializeInstance(
+          ipAddress,
+          numberphone,
+          enableAppointments,
+          enableAutoInvite
+        );
+
         stateManager.updateInstance(numberphone, {
           status: 'completed',
           progress: 100,

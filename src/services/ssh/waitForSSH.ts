@@ -1,6 +1,6 @@
 import { NodeSSH } from 'node-ssh';
 
-export async function waitForSSH(ip: string, maxAttempts = 60) {
+export async function waitForSSH(ip: string, maxAttempts = 20) {
   const ssh = new NodeSSH();
   let attempts = 0;
   const waitTime = 10000;
@@ -8,9 +8,7 @@ export async function waitForSSH(ip: string, maxAttempts = 60) {
   while (attempts < maxAttempts) {
     try {
       console.log(
-        `Intento de conexión SSH ${
-          attempts + 1
-        }/${maxAttempts} - Tiempo restante: ${
+        `Intento de conexión SSH ${attempts + 1}/${maxAttempts} - Tiempo restante: ${
           (maxAttempts - attempts) * 10
         } segundos`
       );

@@ -2,17 +2,21 @@ import { DO_API_URL, headers } from '@src/config/digitalocean';
 import type { Droplet } from '@src/types';
 import { retryWithDelay } from '@src/utils/retryWithDelay';
 
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 export async function createDroplet(
   instanceName: string,
-  numberphone: string,
-  provider: string,
-  userData: string
+  numberphone: string
 ): Promise<Droplet> {
   try {
     console.log('Iniciando creación del droplet...');
-    console.log('User Data configurado:', userData);
+
+    const userData = `#!/bin/bash
+# Configurar contraseña root
+echo "root:${process.env.DIGITALOCEAN_SSH_PASSWORD}" | chpasswd
+sed -i 's/PermitRootLogin no/PermitRootLogin yes/' /etc/ssh/sshd_config
+sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config
+systemctl restart sshd`;
 
     const createDropletResponse = await axios.post(
       `${DO_API_URL}/droplets`,
@@ -20,11 +24,11 @@ export async function createDroplet(
         name: instanceName,
         region: 'sfo3',
         size: 's-1vcpu-512mb-10gb',
-        image: 175946181,
+        image: 177031507,
         backups: false,
         ipv6: false,
         monitoring: true,
-        tags: [numberphone, provider],
+        tags: [numberphone],
         user_data: userData,
       },
       {
@@ -58,7 +62,7 @@ export async function waitForDropletActive(
         () =>
           axios.get(`${DO_API_URL}/droplets/${dropletId}`, {
             headers,
-            timeout: 30000, // Aumentamos el timeout a 30 segundos
+            timeout: 30000,
           }),
         3,
         5000
@@ -69,9 +73,9 @@ export async function waitForDropletActive(
       if (droplet?.status === 'active') {
         console.log('Droplet activo, iniciando espera de inicialización...');
 
-        // Dividimos la espera en intervalos más pequeños
-        const totalWaitTime = 120000; // 120 segundos en total
-        const intervals = 12; // 12 intervalos de 10 segundos
+        // Reducimos el tiempo de espera a 1 minuto
+        const totalWaitTime = 60000; // 60 segundos en total
+        const intervals = 6; // 6 intervalos de 10 segundos
 
         for (let i = 1; i <= intervals; i++) {
           await new Promise((resolve) =>
@@ -97,10 +101,7 @@ export async function waitForDropletActive(
     } catch (error) {
       console.error(
         `Error al verificar estado (intento ${attempts + 1}):`,
-        error instanceof Error ? error.message : 'Error desconocido',
-        error instanceof AxiosError && error.response?.status
-          ? `Status: ${error.response.status}`
-          : ''
+        error instanceof Error ? error.message : 'Error desconocido'
       );
       attempts++;
       await new Promise((resolve) => setTimeout(resolve, waitTime));

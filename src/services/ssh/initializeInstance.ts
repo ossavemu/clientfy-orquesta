@@ -1,9 +1,47 @@
+import axios from 'axios';
 import { NodeSSH } from 'node-ssh';
 
-export async function initializeInstance(ip: string) {
+async function waitForQRCode(ip: string, maxAttempts = 12): Promise<boolean> {
+  console.log('Esperando generación del código QR...');
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    try {
+      const response = await axios.get(`http://${ip}:3008`, {
+        responseType: 'arraybuffer',
+        timeout: 5000,
+      });
+
+      if (
+        response.status === 200 &&
+        response.headers['content-type']?.includes('image')
+      ) {
+        console.log('Código QR generado exitosamente');
+        return true;
+      }
+    } catch (error) {
+      console.log(
+        `Esperando QR... (${attempts + 1}/${maxAttempts}); error: ${error}`
+      );
+    }
+
+    attempts++;
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+
+  return false;
+}
+
+export async function initializeInstance(
+  ip: string,
+  numberphone: string,
+  enableAppointments: boolean,
+  enableAutoInvite: boolean
+) {
   const ssh = new NodeSSH();
 
   try {
+    console.log('Conectando a la instancia por SSH...');
     await ssh.connect({
       host: ip,
       username: 'root',
@@ -11,42 +49,78 @@ export async function initializeInstance(ip: string) {
       tryKeyboard: true,
     });
 
-    const commands = [
-      'if ! swapon -s | grep -q /swapfile; then sudo swapon /swapfile && true; fi',
-      `if [ ! -d "/root/ClientFyAdmin" ]; then git clone https://github.com/ossavemu/ClientFyAdmin.git /root/ClientFyAdmin; fi`,
-      'cd /root/ClientFyAdmin',
-      'git init && true',
-      'git config --global --add safe.directory /root/ClientFyAdmin && true',
-      'git config --global --add safe.directory /root/ClientFyAdmin && true',
-      'git config core.fileMode false && true',
-      // Configurar el repositorio remoto
-      'git remote remove origin && true',
-      'git remote add origin https://github.com/ossavemu/ClientFyAdmin.git && true',
-      // Obtener los últimos cambios
-      'git fetch origin && true',
-      'git checkout master && git checkout -b master && true',
-      'git pull origin master && true',
-      // Asegurarnos de que pnpm está instalado
-      'command -v pnpm || npm install -g pnpm',
-      // Instalar solo dependencias faltantes sin borrar las existentes
-      'cd /root/ClientFyAdmin && pnpm install --no-frozen-lockfile',
-      // Eliminar la carpeta bot_sessions y el archivo QR
-      'rm -rf /root/ClientFyAdmin/bot_sessions',
-      'rm -f /root/ClientFyAdmin/bot.qr.png',
-      // Asegurarnos de que el archivo .env existe
-      'touch /root/ClientFyAdmin/.env',
-      // Reiniciar la aplicación
-      `pkill -f "pnpm start" && true`,
-      `screen -S clientfy -d -m bash -c "cd /root/ClientFyAdmin && pnpm start > app.log 2>&1"`,
+    // Verificar que node está instalado y su versión
+    console.log('Verificando Node.js...');
+    const nodeCheck = await ssh.execCommand(
+      'export PATH="$HOME/.local/share/fnm/node-versions/v22.13.1/installation/bin:$PATH" && node --version'
+    );
+    console.log('Información de Node:', nodeCheck.stdout);
+    if (nodeCheck.stderr) {
+      console.error('Error al verificar Node:', nodeCheck.stderr);
+      throw new Error('No se pudo encontrar Node.js en el sistema');
+    }
+
+    // Actualizar variables de entorno
+    const envCommands = [
+      `sed -i 's/^P_NUMBER=.*/P_NUMBER=${numberphone}/' /root/ClientFyAdmin/.env`,
+      `sed -i 's/^ENABLE_APPOINTMENTS=.*/ENABLE_APPOINTMENTS=${enableAppointments}/' /root/ClientFyAdmin/.env`,
+      `sed -i 's/^ENABLE_AUTO_INVITE=.*/ENABLE_AUTO_INVITE=${enableAutoInvite}/' /root/ClientFyAdmin/.env`,
     ];
 
-    for (const cmd of commands) {
-      console.log(`Ejecutando: ${cmd}`);
+    for (const cmd of envCommands) {
+      console.log('Ejecutando:', cmd);
       const result = await ssh.execCommand(cmd);
-      if (result.stderr && !cmd.includes('|| true')) {
-        throw new Error(`Error ejecutando comando ${cmd}: ${result.stderr}`);
+      if (result.stderr) {
+        console.error('Error al ejecutar comando:', result.stderr);
       }
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    // Verificar que el puerto 3008 no está en uso
+    console.log('Verificando puerto 3008...');
+    const portCheck = await ssh.execCommand('lsof -i :3008');
+    if (portCheck.stdout) {
+      console.log('Limpiando puerto 3008...');
+      await ssh.execCommand('kill $(lsof -t -i:3008)');
+    }
+
+    // Iniciar la aplicación en una nueva sesión de screen usando la ruta completa de node
+    console.log('Iniciando aplicación...');
+    const startCmd =
+      'cd /root/ClientFyAdmin && ' +
+      'export PATH="$HOME/.local/share/fnm/node-versions/v22.13.1/installation/bin:$PATH" && ' +
+      'screen -dmS clientfy-bot bash -c "$HOME/.local/share/fnm/node-versions/v22.13.1/installation/bin/node src/app.js > app.log 2>&1"';
+
+    const startResult = await ssh.execCommand(startCmd);
+    if (startResult.stderr) {
+      console.error('Error al iniciar aplicación:', startResult.stderr);
+    }
+
+    console.log('Esperando 20 segundos para inicialización...');
+    await new Promise((resolve) => setTimeout(resolve, 20000));
+
+    // Verificar logs
+    console.log('Verificando logs...');
+    const logs = await ssh.execCommand('cat /root/ClientFyAdmin/app.log');
+    console.log(
+      'Logs de la aplicación:',
+      logs.stdout || 'Sin logs disponibles'
+    );
+    if (logs.stderr) {
+      console.error('Error al leer logs:', logs.stderr);
+    }
+
+    // Verificar que el proceso está corriendo
+    const processCheck = await ssh.execCommand(
+      'screen -ls | grep clientfy-bot'
+    );
+    if (!processCheck.stdout) {
+      throw new Error('La aplicación no está corriendo');
+    }
+
+    // Esperar a que el QR esté disponible
+    const qrReady = await waitForQRCode(ip);
+    if (!qrReady) {
+      throw new Error('Timeout esperando la generación del código QR');
     }
 
     console.log('Inicialización completada exitosamente');

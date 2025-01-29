@@ -11,7 +11,9 @@
     "lint:fix": "eslint \"**/*.ts\" --fix",
     "log": "tail -f server.log",
     "server:start": "./stop-server.sh && ./start-server.sh && bun log",
-    "server:stop": "./stop-server.sh"
+    "server:stop": "./stop-server.sh",
+    "list-snapshots": "bun run scripts/listSnapshots.ts",
+    "create-test": "bun run scripts/createTestInstance.ts"
   },
   "dependencies": {
     "ws": "^8.18.0",
