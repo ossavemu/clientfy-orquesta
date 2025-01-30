@@ -22,11 +22,14 @@ async function monitorInstanceStatus(): Promise<InstanceStatus | null> {
   console.log('\n📡 Monitoreando estado de la instancia...');
 
   let lastStatus = '';
+  let lastProgress = 0;
   let startTime = Date.now();
 
   while (true) {
     try {
       const response = await axios.get<{
+        success: boolean;
+        error?: string;
         data: InstanceStatus;
       }>(`${API_URL}/instance/status/${NUMBERPHONE}`, {
         headers: {
@@ -34,11 +37,16 @@ async function monitorInstanceStatus(): Promise<InstanceStatus | null> {
         },
       });
 
+      if (!response.data.success) {
+        console.error('\n❌ Error:', response.data.error);
+        return null;
+      }
+
       const instanceData = response.data.data;
       const { status, progress } = instanceData;
 
-      // Solo mostrar cambios de estado
-      if (status !== lastStatus) {
+      // Solo mostrar cambios de estado o progreso
+      if (status !== lastStatus || progress !== lastProgress) {
         const timeElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
         console.log(`\n⏱️  ${timeElapsed}s - Estado: ${status} (${progress}%)`);
 
@@ -47,6 +55,7 @@ async function monitorInstanceStatus(): Promise<InstanceStatus | null> {
         }
 
         lastStatus = status;
+        lastProgress = progress;
       }
 
       // Estados finales
@@ -60,7 +69,11 @@ async function monitorInstanceStatus(): Promise<InstanceStatus | null> {
 
       await new Promise((resolve) => setTimeout(resolve, 5000));
     } catch (error) {
-      console.error('❌ Error al verificar estado:', error);
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        console.error('\n❌ La instancia no fue encontrada');
+        return null;
+      }
+      console.error('\n❌ Error al verificar estado:', error);
       return null;
     }
   }

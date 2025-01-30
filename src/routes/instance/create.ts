@@ -1,3 +1,4 @@
+import { DO_API_URL, headers } from '@src/config/digitalocean';
 import { authMiddleware } from '@src/middleware/authMiddleware';
 import {
   createDroplet,
@@ -8,6 +9,7 @@ import { stateManager } from '@src/services/instanceStateManager';
 import { initializeInstance } from '@src/services/ssh/initializeInstance';
 import { waitForSSH } from '@src/services/ssh/waitForSSH';
 import type { ApiResponse, CreateInstanceBody } from '@src/types';
+import axios from 'axios';
 import { Router, type RequestHandler } from 'express';
 
 const router = Router();
@@ -35,20 +37,25 @@ const createInstance: RequestHandler<
     const existingDroplet = await getExistingDroplet(numberphone);
 
     if (existingDroplet) {
-      stateManager.updateInstance(numberphone, {
-        status: 'existing_in_digitalocean',
-        instanceInfo: existingDroplet,
-      });
-
-      res.status(400).json({
-        success: false,
-        error: 'Ya existe una instancia en DigitalOcean para este número',
-      });
-      return;
+      console.log(`Eliminando instancia existente para ${numberphone}...`);
+      try {
+        await axios.delete(`${DO_API_URL}/droplets/${existingDroplet.id}`, { headers });
+        console.log('Instancia anterior eliminada exitosamente');
+        
+        // Esperar un momento para asegurar que DigitalOcean procese la eliminación
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      } catch (error) {
+        console.error('Error al eliminar instancia existente:', error);
+        res.status(500).json({
+          success: false,
+          error: 'Error al eliminar la instancia existente',
+        });
+        return;
+      }
     }
 
-    // Crear instancia en el gestor de estado
-    stateManager.createInstance(numberphone);
+    // Modificar esta línea para esperar la creación
+    await stateManager.createInstance(numberphone);
 
     // Iniciar proceso asíncrono de creación
     const instanceName = `bot-${numberphone}`;
