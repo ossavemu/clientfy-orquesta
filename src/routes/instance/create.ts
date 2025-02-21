@@ -19,16 +19,12 @@ const createInstance: RequestHandler<
   ApiResponse<{ numberphone: string; status: string }>,
   CreateInstanceBody
 > = async (req, res, next): Promise<void> => {
-  const {
-    numberphone,
-    enableAppointments = false,
-    enableAutoInvite = false,
-  } = req.body;
+  const { numberphone, email, companyName, address, features } = req.body;
 
-  if (!numberphone) {
+  if (!numberphone || !email || !companyName || !address) {
     res.status(400).json({
       success: false,
-      error: 'numberphone es requerido',
+      error: 'numberphone, email, companyName y address son requeridos',
     });
     return;
   }
@@ -39,11 +35,13 @@ const createInstance: RequestHandler<
     if (existingDroplet) {
       console.log(`Eliminando instancia existente para ${numberphone}...`);
       try {
-        await axios.delete(`${DO_API_URL}/droplets/${existingDroplet.id}`, { headers });
+        await axios.delete(`${DO_API_URL}/droplets/${existingDroplet.id}`, {
+          headers,
+        });
         console.log('Instancia anterior eliminada exitosamente');
-        
+
         // Esperar un momento para asegurar que DigitalOcean procese la eliminación
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise((resolve) => setTimeout(resolve, 5000));
       } catch (error) {
         console.error('Error al eliminar instancia existente:', error);
         res.status(500).json({
@@ -117,8 +115,9 @@ const createInstance: RequestHandler<
         await initializeInstance(
           ipAddress,
           numberphone,
-          enableAppointments,
-          enableAutoInvite
+          companyName,
+          address,
+          features
         );
 
         stateManager.updateInstance(numberphone, {

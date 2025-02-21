@@ -24,7 +24,7 @@ systemctl restart sshd`;
         name: instanceName,
         region: 'sfo3',
         size: 's-1vcpu-512mb-10gb',
-        image: 177209925,
+        image: process.env.DIGITALOCEAN_IMAGE_ID,
         backups: false,
         ipv6: false,
         monitoring: true,

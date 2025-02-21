@@ -1,7 +1,19 @@
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3000/api';
-const NUMBERPHONE = '573053483248';
+
+// Datos de prueba
+const TEST_DATA = {
+  email: 'test@clientfy.com',
+  numberphone: '523053483248',
+  companyName: 'Clínica Veterinaria Happy Pets',
+  address: 'Av. Revolución 1234, Zona Centro, Tijuana, BC, México',
+  features: {
+    virtualAppointments: true,
+    inPersonAppointments: true,
+    autoInvite: false,
+  },
+};
 
 interface InstanceStatus {
   status: string;
@@ -31,7 +43,7 @@ async function monitorInstanceStatus(): Promise<InstanceStatus | null> {
         success: boolean;
         error?: string;
         data: InstanceStatus;
-      }>(`${API_URL}/instance/status/${NUMBERPHONE}`, {
+      }>(`${API_URL}/instance/status/${TEST_DATA.numberphone}`, {
         headers: {
           'x-api-key': process.env.SECRET_KEY,
         },
@@ -86,27 +98,19 @@ async function monitorInstanceStatus(): Promise<InstanceStatus | null> {
 async function createTestInstance() {
   try {
     console.log('🚀 Iniciando creación de instancia de prueba');
-    console.log('📱 Número de teléfono:', NUMBERPHONE);
-    console.log('⚙️  Configuración:', {
-      enableAppointments: true,
-      enableAutoInvite: true,
-    });
+    console.log('📧 Email:', TEST_DATA.email);
+    console.log('📱 Número de teléfono:', TEST_DATA.numberphone);
+    console.log('🏢 Empresa:', TEST_DATA.companyName);
+    console.log('📍 Dirección:', TEST_DATA.address);
+    console.log('⚙️  Configuración:', TEST_DATA.features);
 
     // 1. Crear la instancia
-    const response = await axios.post(
-      `${API_URL}/instance/create`,
-      {
-        numberphone: NUMBERPHONE,
-        enableAppointments: true,
-        enableAutoInvite: true,
+    const response = await axios.post(`${API_URL}/instance/create`, TEST_DATA, {
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.SECRET_KEY,
       },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': process.env.SECRET_KEY,
-        },
-      }
-    );
+    });
 
     if (!response.data.success) {
       throw new Error(response.data.error);
@@ -119,7 +123,10 @@ async function createTestInstance() {
       const qrUrl = `http://${instanceData.instanceInfo.ip}:3008`;
       console.log('\n🔍 Información final:');
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('📱 Número:', NUMBERPHONE);
+      console.log('📧 Email:', TEST_DATA.email);
+      console.log('📱 Número:', TEST_DATA.numberphone);
+      console.log('🏢 Empresa:', TEST_DATA.companyName);
+      console.log('📍 Dirección:', TEST_DATA.address);
       console.log('🌐 IP:', instanceData.instanceInfo.ip);
       console.log('🤖 Nombre:', instanceData.instanceInfo.instanceName);
       console.log('🔵 Estado:', instanceData.instanceInfo.state);

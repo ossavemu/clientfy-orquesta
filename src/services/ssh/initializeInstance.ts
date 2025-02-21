@@ -35,8 +35,13 @@ async function waitForQRCode(ip: string, maxAttempts = 12): Promise<boolean> {
 export async function initializeInstance(
   ip: string,
   numberphone: string,
-  enableAppointments: boolean,
-  enableAutoInvite: boolean
+  companyName: string,
+  address: string,
+  features: {
+    virtualAppointments: boolean;
+    inPersonAppointments: boolean;
+    autoInvite: boolean;
+  }
 ) {
   const ssh = new NodeSSH();
 
@@ -63,8 +68,11 @@ export async function initializeInstance(
     // Actualizar variables de entorno
     const envCommands = [
       `sed -i 's/^P_NUMBER=.*/P_NUMBER=${numberphone}/' /root/ClientFyAdmin/.env`,
-      `sed -i 's/^ENABLE_APPOINTMENTS=.*/ENABLE_APPOINTMENTS=${enableAppointments}/' /root/ClientFyAdmin/.env`,
-      `sed -i 's/^ENABLE_AUTO_INVITE=.*/ENABLE_AUTO_INVITE=${enableAutoInvite}/' /root/ClientFyAdmin/.env`,
+      `sed -i 's/^ENABLE_AUTO_INVITE=.*/ENABLE_AUTO_INVITE=${features.autoInvite}/' /root/ClientFyAdmin/.env`,
+      `sed -i 's/^ENABLE_VIRTUAL_APPOINTMENTS=.*/ENABLE_VIRTUAL_APPOINTMENTS=${features.virtualAppointments}/' /root/ClientFyAdmin/.env`,
+      `sed -i 's/^ENABLE_IN_PERSON_APPOINTMENTS=.*/ENABLE_IN_PERSON_APPOINTMENTS=${features.inPersonAppointments}/' /root/ClientFyAdmin/.env`,
+      `sed -i 's/^COMPANY_NAME=.*/COMPANY_NAME="${companyName}"/' /root/ClientFyAdmin/.env`,
+      `sed -i 's/^COMPANY_ADDRESS=.*/COMPANY_ADDRESS="${address}"/' /root/ClientFyAdmin/.env`,
     ];
 
     for (const cmd of envCommands) {
@@ -83,16 +91,19 @@ export async function initializeInstance(
       await ssh.execCommand('kill $(lsof -t -i:3008)');
     }
 
-    // Iniciar la aplicación en una nueva sesión de screen usando la ruta completa de node
-    console.log('Iniciando aplicación...');
-    const startCmd =
-      'cd /root/ClientFyAdmin && ' +
-      'export PATH="$HOME/.local/share/fnm/node-versions/v22.13.1/installation/bin:$PATH" && ' +
-      'screen -dmS clientfy-bot bash -c "$HOME/.local/share/fnm/node-versions/v22.13.1/installation/bin/node src/app.js > app.log 2>&1"';
+    // Dar permisos de ejecución a los scripts
+    console.log('Configurando permisos de scripts...');
+    await ssh.execCommand('cd /root/ClientFyAdmin && chmod +x start.sh');
 
-    const startResult = await ssh.execCommand(startCmd);
+    // Iniciar la aplicación usando start.sh
+    console.log('Iniciando aplicación con start.sh...');
+    const startResult = await ssh.execCommand(
+      'cd /root/ClientFyAdmin && ./start.sh'
+    );
+
     if (startResult.stderr) {
       console.error('Error al iniciar aplicación:', startResult.stderr);
+      throw new Error('Error al iniciar la aplicación');
     }
 
     console.log('Esperando 20 segundos para inicialización...');

@@ -203,10 +203,15 @@ interface SimpleDroplet {
 }
 
 interface CreateInstanceBody {
+  email: string;
   numberphone: string;
-  provider?: string;
-  enableAppointments?: boolean;
-  enableAutoInvite?: boolean;
+  companyName: string;
+  address: string;
+  features: {
+    virtualAppointments: boolean;
+    inPersonAppointments: boolean;
+    autoInvite: boolean;
+  };
 }
 
 interface CustomResponse extends Partial<Response> {
