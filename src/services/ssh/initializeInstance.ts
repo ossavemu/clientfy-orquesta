@@ -54,17 +54,6 @@ export async function initializeInstance(
       tryKeyboard: true,
     });
 
-    // Verificar que node está instalado y su versión
-    console.log('Verificando Node.js...');
-    const nodeCheck = await ssh.execCommand(
-      'export PATH="$HOME/.local/share/fnm/node-versions/v22.13.1/installation/bin:$PATH" && node --version'
-    );
-    console.log('Información de Node:', nodeCheck.stdout);
-    if (nodeCheck.stderr) {
-      console.error('Error al verificar Node:', nodeCheck.stderr);
-      throw new Error('No se pudo encontrar Node.js en el sistema');
-    }
-
     // Actualizar variables de entorno
     const envCommands = [
       `sed -i 's/^P_NUMBER=.*/P_NUMBER=${numberphone}/' /root/ClientFyAdmin/.env`,
@@ -91,14 +80,33 @@ export async function initializeInstance(
       await ssh.execCommand('kill $(lsof -t -i:3008)');
     }
 
-    // Dar permisos de ejecución a los scripts
-    console.log('Configurando permisos de scripts...');
-    await ssh.execCommand('cd /root/ClientFyAdmin && chmod +x start.sh');
+    // Asegurarse de que el directorio de logs existe
+    console.log('Creando directorio de logs si no existe...');
+    await ssh.execCommand('mkdir -p /root/ClientFyAdmin/logs');
 
-    // Iniciar la aplicación usando start.sh
-    console.log('Iniciando aplicación con start.sh...');
+    // Verificar que bun existe y obtener su ruta
+    console.log('Verificando que bun está instalado...');
+    const bunPath = '/root/.bun/bin/bun';
+    const bunExists = await ssh.execCommand(
+      `test -f ${bunPath} && echo "exists"`
+    );
+    if (!bunExists.stdout.includes('exists')) {
+      throw new Error(`Bun no encontrado en ${bunPath}`);
+    }
+
+    // Verificar la versión de bun
+    console.log('Verificando versión de bun...');
+    const bunCheck = await ssh.execCommand(`${bunPath} --version`);
+    if (bunCheck.stderr) {
+      console.error('Error al verificar bun:', bunCheck.stderr);
+      throw new Error('No se pudo verificar bun');
+    }
+    console.log('Versión de bun:', bunCheck.stdout);
+
+    // Iniciar la aplicación en screen con logging
+    console.log('Iniciando aplicación en screen...');
     const startResult = await ssh.execCommand(
-      'cd /root/ClientFyAdmin && ./start.sh'
+      `cd /root/ClientFyAdmin && screen -L -Logfile logs/app.log -dm -S clientfy-bot bash -c "${bunPath} run src/app.js 2>&1 | tee -a logs/app.log"`
     );
 
     if (startResult.stderr) {
@@ -111,7 +119,7 @@ export async function initializeInstance(
 
     // Verificar logs
     console.log('Verificando logs...');
-    const logs = await ssh.execCommand('cat /root/ClientFyAdmin/app.log');
+    const logs = await ssh.execCommand('cat /root/ClientFyAdmin/logs/app.log');
     console.log(
       'Logs de la aplicación:',
       logs.stdout || 'Sin logs disponibles'
@@ -122,9 +130,14 @@ export async function initializeInstance(
 
     // Verificar que el proceso está corriendo
     const processCheck = await ssh.execCommand(
-      'screen -ls | grep clientfy-bot'
+      'screen -list | grep -q clientfy-bot'
     );
-    if (!processCheck.stdout) {
+    if (processCheck.code !== 0) {
+      // Si no encontramos el proceso, verificar los logs una última vez
+      const finalLogs = await ssh.execCommand(
+        'tail -n 50 /root/ClientFyAdmin/logs/app.log'
+      );
+      console.error('Últimos logs antes del error:', finalLogs.stdout);
       throw new Error('La aplicación no está corriendo');
     }
 
